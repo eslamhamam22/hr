@@ -1,0 +1,41 @@
+<div class="list-container">
+  <h1>My Leave Requests</h1>
+
+  <div class="filters">
+    <button class="btn btn-secondary" (click)="refreshData()">
+      Refresh
+    </button>
+  </div>
+
+  <div *ngIf="isLoading()" class="loading">
+    Loading requests...
+  </div>
+
+  <div *ngIf="!isLoading() && requests().length > 0" class="table-wrapper">
+    <app-data-table 
+      [columns]="columns" 
+      [data]="requests()"
+      [rowStyle]="getRowStyle">
+      
+      <ng-template #cellTemplate let-row let-column="column">
+        <ng-container [ngSwitch]="column.field">
+          <span *ngSwitchCase="'startDate'">{{ row.startDate | date: 'MMM dd, yyyy' }}</span>
+          <span *ngSwitchCase="'endDate'">{{ row.endDate | date: 'MMM dd, yyyy' }}</span>
+          <span *ngSwitchCase="'submittedAt'">{{ row.submittedAt | date: 'MMM dd, yyyy' }}</span>
+          <span *ngSwitchCase="'status'" class="status-badge">{{ row.status }}</span>
+          <span *ngSwitchCase="'approvedByName'">{{ row.approvedByName || '-' }}</span>
+          <span *ngSwitchDefault>{{ row[column.field] }}</span>
+        </ng-container>
+      </ng-template>
+      
+    </app-data-table>
+  </div>
+
+  <div *ngIf="!isLoading() && requests().length === 0" class="no-data">
+    <p>No leave requests found. <a href="/requests/new">Create one</a></p>
+  </div>
+
+  <div *ngIf="errorMessage()" class="alert alert-error">
+    {{ errorMessage() }}
+  </div>
+</div>

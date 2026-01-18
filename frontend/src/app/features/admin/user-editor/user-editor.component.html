@@ -1,0 +1,73 @@
+<div class="editor-container">
+  <h1>{{ isEditMode ? 'Edit User' : 'Create User' }}</h1>
+
+  <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" formControlName="username" />
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" formControlName="email" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" formControlName="fullName" />
+      </div>
+
+      <div class="form-group">
+        <label for="role">Role</label>
+        <select id="role" formControlName="role">
+          <option value="Employee">Employee</option>
+          <option value="Manager">Manager</option>
+          <option value="HR">HR</option>
+          <option value="Admin">Admin</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="managerId">Manager</label>
+      <select id="managerId" formControlName="managerId">
+        <option value="">No Manager</option>
+        <option value="2">Jane Smith</option>
+        <option value="3">Bob Johnson</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="password" *ngIf="!isEditMode">Password</label>
+      <label for="password" *ngIf="isEditMode">New Password (leave blank to keep current)</label>
+      <input type="password" id="password" formControlName="password" />
+    </div>
+
+    <div class="form-group">
+      <label for="isActive">
+        <input type="checkbox" id="isActive" formControlName="isActive" />
+        Active
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="!userForm.valid || isSubmitting()">
+        {{ isSubmitting() ? 'Saving...' : 'Save' }}
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">
+        Cancel
+      </button>
+    </div>
+  </form>
+
+  <div *ngIf="successMessage()" class="alert alert-success">
+    {{ successMessage() }}
+  </div>
+
+  <div *ngIf="errorMessage()" class="alert alert-error">
+    {{ errorMessage() }}
+  </div>
+</div>

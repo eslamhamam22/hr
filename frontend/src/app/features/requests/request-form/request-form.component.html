@@ -1,0 +1,56 @@
+<div class="form-container">
+  <h1>Submit Leave Request</h1>
+
+  <form [formGroup]="requestForm" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label for="leaveType">Leave Type</label>
+      <select id="leaveType" formControlName="leaveTypeId">
+        <option value="">Select leave type</option>
+        <option value="1">Sick Leave</option>
+        <option value="2">Vacation</option>
+        <option value="3">Unpaid Leave</option>
+        <option value="4">Maternity</option>
+        <option value="5">Paternity</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="startDate">Start Date</label>
+        <input type="date" id="startDate" formControlName="startDate" />
+      </div>
+
+      <div class="form-group">
+        <label for="endDate">End Date</label>
+        <input type="date" id="endDate" formControlName="endDate" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="reason">Reason</label>
+      <textarea
+        id="reason"
+        formControlName="reason"
+        rows="4"
+        placeholder="Enter the reason for your leave..."
+      ></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="!requestForm.valid || isSubmitting()">
+        {{ isSubmitting() ? 'Submitting...' : 'Submit Request' }}
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">
+        Cancel
+      </button>
+    </div>
+
+    <div *ngIf="successMessage()" class="alert alert-success">
+      {{ successMessage() }}
+    </div>
+
+    <div *ngIf="errorMessage()" class="alert alert-error">
+      {{ errorMessage() }}
+    </div>
+  </form>
+</div>

@@ -1,0 +1,42 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34309.116
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HrSystem.Domain", "HrSystem.Domain\HrSystem.Domain.csproj", "{A1C1E1D1-1111-1111-1111-111111111111}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HrSystem.Application", "HrSystem.Application\HrSystem.Application.csproj", "{A2C2E2D2-2222-2222-2222-222222222222}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HrSystem.Infrastructure", "HrSystem.Infrastructure\HrSystem.Infrastructure.csproj", "{A3C3E3D3-3333-3333-3333-333333333333}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HrSystem.Api", "HrSystem.Api\HrSystem.Api.csproj", "{A4C4E4D4-4444-4444-4444-444444444444}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HrSystem.Tests", "HrSystem.Tests\HrSystem.Tests.csproj", "{A5C5E5D5-5555-5555-5555-555555555555}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A1C1E1D1-1111-1111-1111-111111111111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1C1E1D1-1111-1111-1111-111111111111}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1C1E1D1-1111-1111-1111-111111111111}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1C1E1D1-1111-1111-1111-111111111111}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2C2E2D2-2222-2222-2222-222222222222}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2C2E2D2-2222-2222-2222-222222222222}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2C2E2D2-2222-2222-2222-222222222222}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2C2E2D2-2222-2222-2222-222222222222}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3C3E3D3-3333-3333-3333-333333333333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3C3E3D3-3333-3333-3333-333333333333}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3C3E3D3-3333-3333-3333-333333333333}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3C3E3D3-3333-3333-3333-333333333333}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4C4E4D4-4444-4444-4444-444444444444}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4C4E4D4-4444-4444-4444-444444444444}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4C4E4D4-4444-4444-4444-444444444444}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4C4E4D4-4444-4444-4444-444444444444}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5C5E5D5-5555-5555-5555-555555555555}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5C5E5D5-5555-5555-5555-555555555555}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5C5E5D5-5555-5555-5555-555555555555}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5C5E5D5-5555-5555-5555-555555555555}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

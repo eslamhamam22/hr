@@ -1,0 +1,55 @@
+<div class="filters-container">
+  <h3>Filters</h3>
+
+  <div class="filter-grid">
+    <div class="filter-group">
+      <label for="startDate">Start Date</label>
+      <input
+        type="date"
+        id="startDate"
+        [(ngModel)]="startDate"
+        (change)="applyFilters()"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label for="endDate">End Date</label>
+      <input
+        type="date"
+        id="endDate"
+        [(ngModel)]="endDate"
+        (change)="applyFilters()"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label for="department">Department</label>
+      <select [(ngModel)]="department" (change)="applyFilters()">
+        <option value="">All Departments</option>
+        <option value="engineering">Engineering</option>
+        <option value="hr">HR</option>
+        <option value="finance">Finance</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="employee">Employee</label>
+      <input
+        type="text"
+        id="employee"
+        [(ngModel)]="employee"
+        (change)="applyFilters()"
+        placeholder="Search by name..."
+      />
+    </div>
+  </div>
+
+  <div class="filter-actions">
+    <button class="btn btn-primary" (click)="applyFilters()">
+      Apply Filters
+    </button>
+    <button class="btn btn-secondary" (click)="clearFilters()">
+      Clear
+    </button>
+  </div>
+</div>

@@ -1,0 +1,26 @@
+<table class="data-table">
+  <thead>
+    <tr>
+      <th *ngFor="let column of columns" [style.width]="column.width || 'auto'">
+        {{ column.header }}
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let row of data" [ngStyle]="rowStyle ? rowStyle(row) : {}">
+      <td *ngFor="let column of columns">
+        <ng-container *ngIf="cellTemplate; else defaultCell">
+          <ng-container *ngTemplateOutlet="cellTemplate; context: { $implicit: row, column: column }"></ng-container>
+        </ng-container>
+        <ng-template #defaultCell>
+          {{ row[column.field] }}
+        </ng-template>
+      </td>
+    </tr>
+    <tr *ngIf="!data || data.length === 0">
+      <td [attr.colspan]="columns.length" class="empty">
+        No data available
+      </td>
+    </tr>
+  </tbody>
+</table>

@@ -1,0 +1,54 @@
+<div class="report-container">
+  <h1>HR Reports</h1>
+
+  <div class="report-selector">
+    <label>Select Report Type:</label>
+    <select [(ngModel)]="selectedReport" (change)="onReportChange()">
+      <option value="">Choose a report...</option>
+      <option value="attendance">Attendance Report</option>
+      <option value="leave-summary">Leave Summary</option>
+      <option value="overtime">Overtime Audit</option>
+    </select>
+  </div>
+
+  <app-report-filters
+    *ngIf="selectedReport"
+    [reportType]="selectedReport"
+    (filterApplied)="onFilterApplied($event)"
+  ></app-report-filters>
+
+  <div *ngIf="isLoading()" class="loading">
+    Generating report...
+  </div>
+
+  <div *ngIf="!isLoading() && reportData().length > 0" class="report-data">
+    <div class="export-buttons">
+      <button class="btn btn-small" (click)="exportExcel()">Export Excel</button>
+      <button class="btn btn-small" (click)="exportCsv()">Export CSV</button>
+      <button class="btn btn-small" (click)="exportPdf()">Export PDF</button>
+    </div>
+
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th *ngFor="let header of reportHeaders()">{{ header }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of reportData()">
+          <td *ngFor="let header of reportHeaders()">
+            {{ row[header] }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!isLoading() && reportData().length === 0 && selectedReport" class="no-data">
+    <p>No data available for the selected filters</p>
+  </div>
+
+  <div *ngIf="errorMessage()" class="alert alert-error">
+    {{ errorMessage() }}
+  </div>
+</div>
