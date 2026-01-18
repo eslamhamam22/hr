@@ -1,26 +1,107 @@
-<table class="data-table">
-  <thead>
-    <tr>
-      <th *ngFor="let column of columns" [style.width]="column.width || 'auto'">
-        {{ column.header }}
-      </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let row of data" [ngStyle]="rowStyle ? rowStyle(row) : {}">
-      <td *ngFor="let column of columns">
-        <ng-container *ngIf="cellTemplate; else defaultCell">
-          <ng-container *ngTemplateOutlet="cellTemplate; context: { $implicit: row, column: column }"></ng-container>
+<div class="data-table-container">
+  <!-- Search Bar -->
+  <div class="table-header" *ngIf="searchable">
+    <div class="search-box">
+      <input type="text" placeholder="Search..." [(ngModel)]="searchTerm" (ngModelChange)="onSearch($event)"
+        class="search-input" />
+      <span class="search-icon">🔍</span>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th *ngFor="let column of columns" [style.width]="column.width || 'auto'" [class.sortable]="column.sortable"
+            (click)="onSort(column)">
+            <div class="th-content">
+              <span>{{ column.header }}</span>
+              <span class="sort-icon" *ngIf="column.sortable">{{ getSortIcon(column) }}</span>
+            </div>
+          </th>
+          <th *ngIf="actionsTemplate" class="actions-column">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Loading State -->
+        <tr *ngIf="loading">
+          <td [attr.colspan]="columns.length + (actionsTemplate ? 1 : 0)" class="loading">
+            <div class="loading-spinner">
+              <div class="spinner"></div>
+              <span>Loading...</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Data Rows -->
+        <ng-container *ngIf="!loading">
+          <tr *ngFor="let row of data" [ngStyle]="rowStyle ? rowStyle(row) : {}" (click)="onRowClick(row)"
+            class="data-row">
+            <td *ngFor="let column of columns">
+              <ng-container *ngIf="cellTemplate; else defaultCell">
+                <ng-container
+                  *ngTemplateOutlet="cellTemplate; context: { $implicit: row, column: column }"></ng-container>
+              </ng-container>
+              <ng-template #defaultCell>
+                {{ row[column.field] }}
+              </ng-template>
+            </td>
+            <td *ngIf="actionsTemplate" class="actions-cell">
+              <ng-container *ngTemplateOutlet="actionsTemplate; context: { $implicit: row }"></ng-container>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="!data || data.length === 0">
+            <td [attr.colspan]="columns.length + (actionsTemplate ? 1 : 0)" class="empty">
+              <div class="empty-state">
+                <span class="empty-icon">📭</span>
+                <p>No data available</p>
+              </div>
+            </td>
+          </tr>
         </ng-container>
-        <ng-template #defaultCell>
-          {{ row[column.field] }}
-        </ng-template>
-      </td>
-    </tr>
-    <tr *ngIf="!data || data.length === 0">
-      <td [attr.colspan]="columns.length" class="empty">
-        No data available
-      </td>
-    </tr>
-  </tbody>
-</table>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="table-footer" *ngIf="pagination">
+    <div class="pagination-info">
+      <span>
+        Showing {{ getStartItem() }}
+        to {{ getEndItem() }}
+        of {{ pagination.totalItems }} entries
+      </span>
+    </div>
+
+    <div class="pagination-controls">
+      <select [ngModel]="pagination.pageSize" (ngModelChange)="onPageSizeChange($event)" class="page-size-select">
+        <option *ngFor="let size of pageSizeOptions" [value]="size">
+          {{ size }} per page
+        </option>
+      </select>
+
+      <div class="page-buttons">
+        <button class="page-btn" [disabled]="pagination.currentPage === 1" (click)="onPageChange(1)">
+          ««
+        </button>
+        <button class="page-btn" [disabled]="pagination.currentPage === 1"
+          (click)="onPageChange(pagination.currentPage - 1)">
+          ‹
+        </button>
+        <span class="page-info">
+          Page {{ pagination.currentPage }} of {{ totalPages }}
+        </span>
+        <button class="page-btn" [disabled]="pagination.currentPage === totalPages"
+          (click)="onPageChange(pagination.currentPage + 1)">
+          ›
+        </button>
+        <button class="page-btn" [disabled]="pagination.currentPage === totalPages" (click)="onPageChange(totalPages)">
+          »»
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

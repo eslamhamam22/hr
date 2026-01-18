@@ -1,0 +1,180 @@
+.overtime-detail-container {
+    max-width: 900px;
+
+    .loading,
+    .error {
+        text-align: center;
+        padding: 60px 20px;
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        p {
+            color: #666;
+            font-size: 16px;
+        }
+    }
+
+    .detail-content {
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+
+            h1 {
+                margin: 0;
+                font-size: 28px;
+                color: #2c3e50;
+                font-weight: 700;
+            }
+
+            .subtitle {
+                margin: 5px 0 0;
+                color: #7f8c8d;
+                font-size: 14px;
+            }
+
+            .btn-secondary {
+                padding: 10px 20px;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                color: #495057;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+
+                &:hover {
+                    background: #f8f9fa;
+                }
+            }
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px 30px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+
+                h2 {
+                    margin: 0;
+                    font-size: 20px;
+                    font-weight: 600;
+                }
+
+                .status-badge {
+                    padding: 6px 16px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    background: rgba(255, 255, 255, 0.2);
+                    color: white;
+                }
+            }
+
+            .info-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 24px;
+                padding: 30px;
+                border-bottom: 1px solid #e0e0e0;
+
+                .info-item {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+
+                    .label {
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: #7f8c8d;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+
+                    .value {
+                        font-size: 15px;
+                        color: #2c3e50;
+                        font-weight: 500;
+                    }
+                }
+            }
+
+            .info-section {
+                padding: 25px 30px;
+                border-bottom: 1px solid #e0e0e0;
+
+                &:last-child {
+                    border-bottom: none;
+                }
+
+                .label {
+                    display: block;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #7f8c8d;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 12px;
+                }
+
+                .reason-text,
+                .rejection-text {
+                    margin: 0;
+                    color: #2c3e50;
+                    line-height: 1.6;
+                    font-size: 15px;
+                }
+
+                .rejection-text {
+                    color: #dc3545;
+                    background: #f8d7da;
+                    padding: 15px;
+                    border-radius: 6px;
+                    border-left: 4px solid #dc3545;
+                }
+            }
+
+            .override-banner {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 15px 30px;
+                background: #fff3cd;
+                color: #856404;
+                font-weight: 600;
+                border-top: 1px solid #ffc107;
+
+                .icon {
+                    font-size: 20px;
+                }
+            }
+        }
+    }
+}

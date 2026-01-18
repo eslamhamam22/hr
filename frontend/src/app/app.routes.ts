@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './features/auth/login/login.component';
+import { LayoutComponent } from './shared/layout/layout.component';
 import { DashboardComponent } from './features/dashboard/employee-summary.component';
 import { RequestFormComponent } from './features/requests/request-form/request-form.component';
 import { RequestListComponent } from './features/requests/request-list/request-list.component';
@@ -15,54 +16,75 @@ export const routes: Routes = [
     component: LoginComponent
   },
   {
-    path: 'dashboard',
-    component: DashboardComponent,
-    canActivate: [authGuard]
-  },
-  {
-    path: 'requests',
-    canActivate: [authGuard],
-    children: [
-      {
-        path: 'new',
-        component: RequestFormComponent
-      },
-      {
-        path: 'list',
-        component: RequestListComponent
-      }
-    ]
-  },
-  {
-    path: 'approvals',
-    component: ApprovalQueueComponent,
-    canActivate: [authGuard],
-    data: { roles: ['Manager', 'HR', 'Admin'] }
-  },
-  {
-    path: 'admin',
-    canActivate: [authGuard],
-    data: { roles: ['Admin'] },
-    children: [
-      {
-        path: 'users',
-        component: UserListComponent
-      },
-      {
-        path: 'users/new',
-        component: UserEditorComponent
-      }
-    ]
-  },
-  {
-    path: 'reports',
-    component: ReportViewerComponent,
-    canActivate: [authGuard],
-    data: { roles: ['Manager', 'HR', 'Admin'] }
-  },
-  {
     path: '',
-    redirectTo: '/dashboard',
-    pathMatch: 'full'
+    component: LayoutComponent,
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        component: DashboardComponent
+      },
+      {
+        path: 'requests',
+        children: [
+          {
+            path: 'new',
+            component: RequestFormComponent
+          },
+          {
+            path: 'list',
+            component: RequestListComponent
+          },
+          {
+            path: 'overtime',
+            loadChildren: () => import('./features/requests/overtime/overtime.routes').then(m => m.overtimeRoutes)
+          }
+        ]
+      },
+      {
+        path: 'approvals',
+        component: ApprovalQueueComponent,
+        data: { roles: ['Manager', 'HR', 'Admin'] }
+      },
+      {
+        path: 'admin',
+        data: { roles: ['Admin', 'HR'] },
+        children: [
+          {
+            path: 'users',
+            component: UserListComponent,
+            data: { roles: ['Admin'] }
+          },
+          {
+            path: 'users/new',
+            component: UserEditorComponent,
+            data: { roles: ['Admin'] }
+          },
+          {
+            path: 'departments',
+            loadChildren: () => import('./features/admin/departments/department.routes').then(m => m.departmentRoutes)
+          },
+          {
+            path: 'attendance',
+            loadChildren: () => import('./features/admin/attendance/attendance.routes').then(m => m.attendanceRoutes)
+          },
+          {
+            path: 'approval-logs',
+            loadChildren: () => import('./features/admin/approval-logs/approval-log.routes').then(m => m.approvalLogRoutes)
+          }
+        ]
+      },
+      {
+        path: 'reports',
+        component: ReportViewerComponent,
+        data: { roles: ['Manager', 'HR', 'Admin'] }
+      },
+      {
+        path: '',
+        redirectTo: '/dashboard',
+        pathMatch: 'full'
+      }
+    ]
   }
 ];
+

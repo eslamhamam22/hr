@@ -1,0 +1,34 @@
+<div class="detail-container">
+    <div class="page-header">
+        <h1>Attendance Log Details</h1>
+        <button class="btn-secondary" (click)="goBack()">← Back</button>
+    </div>
+
+    <div *ngIf="loading" class="loading">Loading...</div>
+
+    <div *ngIf="attendanceLog && !loading" class="info-card">
+        <h2>{{ attendanceLog.userName }}</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="label">Date</span>
+                <span class="value">{{ formatDate(attendanceLog.date) }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Check In</span>
+                <span class="value">{{ attendanceLog.checkInTime }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Check Out</span>
+                <span class="value">{{ attendanceLog.checkOutTime || 'Not checked out' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Hours Worked</span>
+                <span class="value">{{ attendanceLog.hoursWorked }} hours</span>
+            </div>
+        </div>
+        <div class="notes" *ngIf="attendanceLog.notes">
+            <span class="label">Notes</span>
+            <p>{{ attendanceLog.notes }}</p>
+        </div>
+    </div>
+</div>

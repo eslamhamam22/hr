@@ -1,6 +1,7 @@
 using HrSystem.Domain.Entities;
 using HrSystem.Domain.Interfaces;
 using HrSystem.Infrastructure.Data.Context;
+using Microsoft.EntityFrameworkCore;
 
 namespace HrSystem.Infrastructure.Data.Repositories;
 
@@ -16,6 +17,11 @@ public class EfRepository<T> : IRepository<T> where T : class
         _context = context;
     }
 
+    public IQueryable<T> GetQueryable()
+    {
+        return _context.Set<T>();
+    }
+
     public async Task<T?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Set<T>().FindAsync(new object[] { id }, cancellationToken: cancellationToken);
@@ -23,24 +29,26 @@ public class EfRepository<T> : IRepository<T> where T : class
 
     public async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(_context.Set<T>().AsEnumerable());
+        return await _context.Set<T>().ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(T entity, CancellationToken cancellationToken = default)
     {
         await _context.Set<T>().AddAsync(entity, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
+    public void Update(T entity)
     {
         _context.Set<T>().Update(entity);
-        await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
+    public void Delete(T entity)
     {
         _context.Set<T>().Remove(entity);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

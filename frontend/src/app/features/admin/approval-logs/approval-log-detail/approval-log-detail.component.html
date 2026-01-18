@@ -1,0 +1,40 @@
+<div class="detail-container">
+    <div class="page-header">
+        <h1>Approval Log Details</h1>
+        <button class="btn-secondary" (click)="goBack()">← Back</button>
+    </div>
+
+    <div *ngIf="loading" class="loading">Loading...</div>
+
+    <div *ngIf="approvalLog && !loading" class="info-card">
+        <div class="card-header" [class.approved]="approvalLog.approved">
+            <h2>{{ approvalLog.approved ? 'Approved' : 'Rejected' }}</h2>
+        </div>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="label">Request Type</span>
+                <span class="value">{{ approvalLog.requestType }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Approved By</span>
+                <span class="value">{{ approvalLog.approvedByUserName || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Decision Date</span>
+                <span class="value">{{ formatDateTime(approvalLog.createdAt) }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Override</span>
+                <span class="value">{{ approvalLog.isOverride ? 'Yes' : 'No' }}</span>
+            </div>
+        </div>
+        <div class="section" *ngIf="approvalLog.comments">
+            <span class="label">Comments</span>
+            <p>{{ approvalLog.comments }}</p>
+        </div>
+        <div class="section" *ngIf="approvalLog.overrideReason">
+            <span class="label">Override Reason</span>
+            <p class="warning">{{ approvalLog.overrideReason }}</p>
+        </div>
+    </div>
+</div>

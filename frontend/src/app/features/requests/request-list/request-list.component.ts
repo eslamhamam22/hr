@@ -4,6 +4,7 @@ import { DataTableComponent, DataTableColumn } from '../../../shared/components/
 import { StatusColorPipe } from '../../../shared/pipes/status-color.pipe';
 import { RequestService } from '../../../core/services/request.service';
 import { Request } from '../../../core/models/request.model';
+import { AuthService } from '@core/auth/auth.service';
 
 @Component({
   selector: 'app-request-list',
@@ -28,7 +29,8 @@ export class RequestListComponent implements OnInit {
 
   constructor(
     private requestService: RequestService,
-    private statusColorPipe: StatusColorPipe
+    private statusColorPipe: StatusColorPipe,
+    private authService: AuthService
   ) {}
 
   getRowStyle = (request: Request) => {
@@ -42,8 +44,8 @@ export class RequestListComponent implements OnInit {
   refreshData(): void {
     this.isLoading.set(true);
     this.errorMessage.set('');
-
-    this.requestService.getRequestHistory('').subscribe({
+    var requestorId = this.authService.user()?.id || '';
+    this.requestService.getRequestHistory(requestorId).subscribe({
       next: (data) => {
         this.requests.set(data);
         this.isLoading.set(false);

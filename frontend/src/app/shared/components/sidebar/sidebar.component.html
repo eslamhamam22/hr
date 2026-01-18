@@ -1,0 +1,63 @@
+<aside class="sidebar" [class.collapsed]="isCollapsed">
+    <div class="sidebar-header">
+        <div class="logo">
+            <span class="logo-icon">🏢</span>
+            <span class="logo-text" *ngIf="!isCollapsed">HR System</span>
+        </div>
+        <button class="toggle-btn" (click)="toggleSidebar()" aria-label="Toggle sidebar">
+            <span>{{ isCollapsed ? '☰' : '✕' }}</span>
+        </button>
+    </div>
+
+    <nav class="sidebar-nav">
+        <ul class="nav-list">
+            <ng-container *ngFor="let item of menuItems">
+                <li *ngIf="hasAccess(item)" class="nav-item" [class.has-children]="item.children">
+
+                    <!-- Menu item with children -->
+                    <div *ngIf="item.children" class="nav-link-wrapper">
+                        <a class="nav-link" (click)="toggleMenu(item.label)"
+                            [class.expanded]="isMenuExpanded(item.label)">
+                            <span class="nav-icon">{{ item.icon }}</span>
+                            <span class="nav-label" *ngIf="!isCollapsed">{{ item.label }}</span>
+                            <span class="expand-icon" *ngIf="!isCollapsed && item.children">
+                                {{ isMenuExpanded(item.label) ? '▼' : '▶' }}
+                            </span>
+                        </a>
+
+                        <ul class="sub-menu" *ngIf="isMenuExpanded(item.label) && !isCollapsed">
+                            <li *ngFor="let child of item.children" class="sub-item">
+                                <a *ngIf="hasAccess(child) && child.route" [routerLink]="child.route"
+                                    routerLinkActive="active" class="sub-link">
+                                    <span class="nav-icon">{{ child.icon }}</span>
+                                    <span class="nav-label">{{ child.label }}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Menu item without children -->
+                    <a *ngIf="!item.children && item.route" [routerLink]="item.route" routerLinkActive="active"
+                        class="nav-link">
+                        <span class="nav-icon">{{ item.icon }}</span>
+                        <span class="nav-label" *ngIf="!isCollapsed">{{ item.label }}</span>
+                    </a>
+                </li>
+            </ng-container>
+        </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-info" *ngIf="authService.user() as user">
+            <div class="user-avatar">{{ user.fullName?.charAt(0) || 'U' }}</div>
+            <div class="user-details" *ngIf="!isCollapsed">
+                <div class="user-name">{{ user.fullName }}</div>
+                <div class="user-role">{{ user.role }}</div>
+            </div>
+        </div>
+        <button class="logout-btn" (click)="logout()" [title]="isCollapsed ? 'Logout' : ''">
+            <span class="nav-icon">🚪</span>
+            <span class="nav-label" *ngIf="!isCollapsed">Logout</span>
+        </button>
+    </div>
+</aside>

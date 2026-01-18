@@ -1,0 +1,41 @@
+.attendance-list-container {
+    .page-header {
+        margin-bottom: 30px;
+
+        .header-content h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            margin: 5px 0 0;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+
+        &.badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        &.badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        &.badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    }
+}

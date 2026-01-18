@@ -6,17 +6,20 @@
       {{ authService.error() }}
     </div>
 
-    <form (ngSubmit)="onLogin()">
+    <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
       <div class="form-group">
         <label for="username">Username</label>
         <input
           type="text"
           id="username"
-          [(ngModel)]="username"
-          name="username"
-          required
+          formControlName="username"
           [disabled]="authService.isLoading()"
+          placeholder="Enter your username"
         />
+        <div class="error-message" *ngIf="username?.invalid && username?.touched">
+          <small *ngIf="username?.errors?.['required']">Username is required</small>
+          <small *ngIf="username?.errors?.['minlength']">Username must be at least 3 characters</small>
+        </div>
       </div>
 
       <div class="form-group">
@@ -24,24 +27,24 @@
         <input
           type="password"
           id="password"
-          [(ngModel)]="password"
-          name="password"
-          required
+          formControlName="password"
           [disabled]="authService.isLoading()"
+          placeholder="Enter your password"
         />
+        <div class="error-message" *ngIf="password?.invalid && password?.touched">
+          <small *ngIf="password?.errors?.['required']">Password is required</small>
+          <small *ngIf="password?.errors?.['minlength']">Password must be at least 4 characters</small>
+        </div>
       </div>
 
       <button
         type="submit"
         class="btn btn-primary btn-block"
-        [disabled]="authService.isLoading()"
+        [disabled]="authService.isLoading() || loginForm.invalid"
       >
         {{ authService.isLoading() ? 'Logging in...' : 'Login' }}
       </button>
     </form>
 
-    <p class="demo-text">
-      Demo: username: john.doe | password: password123
-    </p>
   </div>
 </div>

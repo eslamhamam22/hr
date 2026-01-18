@@ -1,0 +1,87 @@
+<div class="overtime-detail-container">
+    <div class="loading" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Loading overtime request...</p>
+    </div>
+
+    <div class="error" *ngIf="error && !loading">
+        <p>{{ error }}</p>
+        <button class="btn-primary" (click)="goBack()">Go Back</button>
+    </div>
+
+    <div *ngIf="overtimeRequest && !loading" class="detail-content">
+        <div class="page-header">
+            <div>
+                <h1>Overtime Request Details</h1>
+                <p class="subtitle">Request ID: {{ overtimeRequest.id }}</p>
+            </div>
+            <button class="btn-secondary" (click)="goBack()">← Back to List</button>
+        </div>
+
+        <div class="info-card">
+            <div class="card-header">
+                <h2>Request Information</h2>
+                <span [class]="getStatusClass(overtimeRequest.status)" class="status-badge">
+                    {{ getStatusLabel(overtimeRequest.status) }}
+                </span>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">Employee</span>
+                    <span class="value">{{ overtimeRequest.userName || 'N/A' }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="label">Hours Worked</span>
+                    <span class="value">{{ overtimeRequest.hoursWorked }} hours</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="label">Start Date & Time</span>
+                    <span class="value">{{ formatDateTime(overtimeRequest.startDateTime) }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="label">End Date & Time</span>
+                    <span class="value">{{ formatDateTime(overtimeRequest.endDateTime) }}</span>
+                </div>
+
+                <div class="info-item" *ngIf="overtimeRequest.submittedAt">
+                    <span class="label">Submitted At</span>
+                    <span class="value">{{ formatDateTime(overtimeRequest.submittedAt) }}</span>
+                </div>
+
+                <div class="info-item" *ngIf="overtimeRequest.approvedAt">
+                    <span class="label">Approved At</span>
+                    <span class="value">{{ formatDateTime(overtimeRequest.approvedAt) }}</span>
+                </div>
+
+                <div class="info-item" *ngIf="overtimeRequest.managerName">
+                    <span class="label">Manager</span>
+                    <span class="value">{{ overtimeRequest.managerName }}</span>
+                </div>
+
+                <div class="info-item" *ngIf="overtimeRequest.approvedByHRName">
+                    <span class="label">Approved by HR</span>
+                    <span class="value">{{ overtimeRequest.approvedByHRName }}</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <span class="label">Reason</span>
+                <p class="reason-text">{{ overtimeRequest.reason }}</p>
+            </div>
+
+            <div class="info-section" *ngIf="overtimeRequest.rejectionReason">
+                <span class="label">Rejection Reason</span>
+                <p class="rejection-text">{{ overtimeRequest.rejectionReason }}</p>
+            </div>
+
+            <div class="override-banner" *ngIf="overtimeRequest.isOverridden">
+                <span class="icon">⚠️</span>
+                <span>This request was overridden</span>
+            </div>
+        </div>
+    </div>
+</div>

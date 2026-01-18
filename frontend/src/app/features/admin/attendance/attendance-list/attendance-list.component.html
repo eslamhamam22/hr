@@ -1,0 +1,28 @@
+<div class="attendance-list-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Attendance Logs</h1>
+            <p class="subtitle">View employee attendance records</p>
+        </div>
+    </div>
+
+    <app-data-table [columns]="columns" [data]="attendanceLogs" [pagination]="pagination" [loading]="loading"
+        [searchable]="true" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)"
+        (searchChange)="onSearch($event)" (rowClick)="onRowClick($event)">
+
+        <ng-template #cellTemplate let-row let-column="column">
+            <ng-container [ngSwitch]="column.field">
+                <span *ngSwitchCase="'date'">{{ formatDate(row.date) }}</span>
+                <span *ngSwitchCase="'isLate'" [class]="row.isLate ? 'badge-warning' : 'badge-success'" class="badge">
+                    {{ row.isLate ? 'Late' : 'On Time' }}
+                </span>
+                <span *ngSwitchCase="'isAbsent'" [class]="row.isAbsent ? 'badge-danger' : 'badge-success'"
+                    class="badge">
+                    {{ row.isAbsent ? 'Absent' : 'Present' }}
+                </span>
+                <span *ngSwitchCase="'hoursWorked'">{{ row.hoursWorked }} hrs</span>
+                <span *ngSwitchDefault>{{ row[column.field] }}</span>
+            </ng-container>
+        </ng-template>
+    </app-data-table>
+</div>

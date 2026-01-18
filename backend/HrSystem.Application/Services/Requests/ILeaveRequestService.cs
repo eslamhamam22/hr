@@ -1,3 +1,7 @@
+using HrSystem.Application.Common.Models;
+using HrSystem.Application.DTOs.Requests;
+using HrSystem.Domain.Enums;
+
 namespace HrSystem.Application.Services.Requests;
 
 /// <summary>
@@ -18,4 +22,13 @@ public interface ILeaveRequestService
     Task<bool> ApproveLeaveRequestAsync(Guid requestId, Guid approverUserId, CancellationToken cancellationToken = default);
     
     Task<bool> RejectLeaveRequestAsync(Guid requestId, Guid approverUserId, string rejectionReason, CancellationToken cancellationToken = default);
+
+    Task<PaginatedResult<LeaveRequestDto>> GetLeaveRequestsAsync(
+        int page,
+        int pageSize,
+        RequestStatus? status,
+        Guid? userId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(Guid id, CancellationToken cancellationToken = default);
 }

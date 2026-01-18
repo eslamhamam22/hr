@@ -1,0 +1,48 @@
+<div class="overtime-list-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Overtime Requests</h1>
+            <p class="subtitle">View and manage overtime requests</p>
+        </div>
+        <button class="btn-primary" (click)="createNewRequest()">
+            <span class="icon">➕</span>
+            New Overtime Request
+        </button>
+    </div>
+
+    <app-data-table [columns]="columns" [data]="overtimeRequests" [pagination]="pagination" [loading]="loading"
+        [searchable]="true" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)"
+        (searchChange)="onSearch($event)" (rowClick)="onRowClick($event)">
+
+        <ng-template #cellTemplate let-row let-column="column">
+            <ng-container [ngSwitch]="column.field">
+                <span *ngSwitchCase="'status'" [class]="getStatusClass(row.status)" class="status-badge">
+                    {{ getStatusLabel(row.status) }}
+                </span>
+                <span *ngSwitchCase="'startDateTime'">
+                    {{ formatDateTime(row.startDateTime) }}
+                </span>
+                <span *ngSwitchCase="'endDateTime'">
+                    {{ formatDateTime(row.endDateTime) }}
+                </span>
+                <span *ngSwitchCase="'submittedAt'">
+                    {{ formatDate(row.submittedAt) }}
+                </span>
+                <span *ngSwitchCase="'hoursWorked'">
+                    {{ row.hoursWorked }} hrs
+                </span>
+                <span *ngSwitchDefault>
+                    {{ row[column.field] }}
+                </span>
+            </ng-container>
+        </ng-template>
+
+        <ng-template #actionsTemplate let-request>
+            <div class="action-buttons">
+                <button class="btn-icon btn-delete" (click)="deleteRequest(request, $event)" title="Delete">
+                    🗑️
+                </button>
+            </div>
+        </ng-template>
+    </app-data-table>
+</div>

@@ -1,0 +1,115 @@
+.department-list-container {
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 20px;
+
+        .header-content {
+            h1 {
+                margin: 0;
+                font-size: 28px;
+                color: #2c3e50;
+                font-weight: 700;
+            }
+
+            .subtitle {
+                margin: 5px 0 0;
+                color: #7f8c8d;
+                font-size: 14px;
+            }
+        }
+
+        .btn-primary {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            }
+
+            .icon {
+                font-size: 16px;
+            }
+        }
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+
+        &.status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        &.status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+
+        .btn-icon {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+
+            &:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            }
+
+            &.btn-edit:hover {
+                background: #fff3cd;
+                border-color: #ffc107;
+            }
+
+            &.btn-delete:hover {
+                background: #f8d7da;
+                border-color: #dc3545;
+            }
+        }
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .department-list-container {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+
+            .btn-primary {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    }
+}

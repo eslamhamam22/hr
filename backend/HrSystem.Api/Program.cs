@@ -3,7 +3,10 @@ using HrSystem.Api.Services;
 using HrSystem.Application.Common.Interfaces;
 using HrSystem.Application.Services.Auth;
 using HrSystem.Infrastructure;
+using HrSystem.Infrastructure.Data.Context;
+using HrSystem.Infrastructure.Data.Seeder;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -77,8 +80,27 @@ builder.Services.AddInfrastructure(connectionString, smtpEmail, smtpServer, smtp
 // Register application services
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IAuthService, HrSystem.Application.Services.Auth.AuthService>();
+builder.Services.AddScoped<HrSystem.Application.Services.Departments.IDepartmentService, HrSystem.Application.Services.Departments.DepartmentService>();
+builder.Services.AddScoped<HrSystem.Application.Services.Overtime.IOvertimeService, HrSystem.Application.Services.Overtime.OvertimeService>();
+builder.Services.AddScoped<HrSystem.Application.Services.Requests.ILeaveRequestService, HrSystem.Application.Services.Requests.LeaveRequestService>();
+builder.Services.AddScoped<HrSystem.Application.Services.Attendance.IAttendanceService, HrSystem.Application.Services.Attendance.AttendanceService>();
+builder.Services.AddScoped<HrSystem.Application.Services.ApprovalLogs.IApprovalLogService, HrSystem.Application.Services.ApprovalLogs.ApprovalLogService>();
+builder.Services.AddScoped<HrSystem.Application.Services.Users.IUserService, HrSystem.Application.Services.Users.UserService>();
+
 
 var app = builder.Build();
+
+// Migrate and seed database
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<HrDbContext>();
+
+    // Apply pending migrations
+    await dbContext.Database.MigrateAsync();
+
+    // Seed data
+    await DataSeeder.SeedAsync(dbContext);
+}
 
 // Configure middleware
 if (app.Environment.IsDevelopment())

@@ -1,0 +1,29 @@
+<div class="approval-logs-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Approval Logs</h1>
+            <p class="subtitle">Audit trail of all approval decisions</p>
+        </div>
+    </div>
+
+    <app-data-table [columns]="columns" [data]="approvalLogs" [pagination]="pagination" [loading]="loading"
+        [searchable]="true" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)"
+        (searchChange)="onSearch($event)" (rowClick)="onRowClick($event)">
+
+        <ng-template #cellTemplate let-row let-column="column">
+            <ng-container [ngSwitch]="column.field">
+                <span *ngSwitchCase="'approved'" [class]="row.approved ? 'badge-success' : 'badge-danger'"
+                    class="badge">
+                    {{ row.approved ? 'Approved' : 'Rejected' }}
+                </span>
+                <ng-container *ngIf="row?.isOverride">
+                    <span *ngSwitchCase="'isOverride'" class="badge badge-warning">
+                        Override
+                    </span>
+                </ng-container>
+                <span *ngSwitchCase="'createdAt'">{{ formatDateTime(row.createdAt) }}</span>
+                <span *ngSwitchDefault>{{ row[column.field] }}</span>
+            </ng-container>
+        </ng-template>
+    </app-data-table>
+</div>

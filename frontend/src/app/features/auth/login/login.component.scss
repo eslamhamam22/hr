@@ -49,6 +49,21 @@
         background: #f5f5f5;
         cursor: not-allowed;
       }
+
+      &.ng-invalid.ng-touched {
+        border-color: #dc3545;
+      }
+    }
+
+    .error-message {
+      margin-top: 6px;
+      
+      small {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        line-height: 1.4;
+      }
     }
   }
 

@@ -8,8 +8,8 @@ import { User, AuthState } from '../models/user.model';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'https://localhost:5001/api';
-  
+  private apiUrl = 'https://localhost:44360/api';
+
   // Signals for reactive state management
   private authStateSignal = signal<AuthState>({
     user: null,
@@ -32,12 +32,10 @@ export class AuthService {
 
   async login(username: string, password: string): Promise<boolean> {
     this.authStateSignal.update(state => ({ ...state, isLoading: true, error: null }));
-    
     try {
       const response = await firstValueFrom(
         this.http.post<any>(`${this.apiUrl}/auth/login`, { username, password })
       );
-
       if (response.success) {
         this.authStateSignal.update(state => ({
           ...state,
@@ -46,7 +44,7 @@ export class AuthService {
           isAuthenticated: true,
           isLoading: false
         }));
-        
+
         this.storeAuth(response.user, response.token);
         return true;
       } else {

@@ -1,0 +1,42 @@
+<div class="department-list-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Departments</h1>
+            <p class="subtitle">Manage organizational departments</p>
+        </div>
+        <button class="btn-primary" (click)="createNewDepartment()">
+            <span class="icon">➕</span>
+            New Department
+        </button>
+    </div>
+
+    <app-data-table [columns]="columns" [data]="departments" [pagination]="pagination" [loading]="loading"
+        [searchable]="true" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)"
+        (searchChange)="onSearch($event)" (rowClick)="onRowClick($event)">
+
+        <ng-template #cellTemplate let-row let-column="column">
+            <ng-container [ngSwitch]="column.field">
+                <span *ngSwitchCase="'isActive'" [class]="getStatusClass(row.isActive)" class="status-badge">
+                    {{ getStatusBadge(row.isActive) }}
+                </span>
+                <span *ngSwitchCase="'createdAt'">
+                    {{ formatDate(row.createdAt) }}
+                </span>
+                <span *ngSwitchDefault>
+                    {{ row[column.field] }}
+                </span>
+            </ng-container>
+        </ng-template>
+
+        <ng-template #actionsTemplate let-department>
+            <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="editDepartment(department, $event)" title="Edit">
+                    ✏️
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteDepartment(department, $event)" title="Delete">
+                    🗑️
+                </button>
+            </div>
+        </ng-template>
+    </app-data-table>
+</div>

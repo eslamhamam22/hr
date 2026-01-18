@@ -1,0 +1,65 @@
+<div class="overtime-form-container">
+    <div class="page-header">
+        <h1>New Overtime Request</h1>
+        <p class="subtitle">Submit a new overtime request for approval</p>
+    </div>
+
+    <div class="form-card">
+        <div class="alert alert-error" *ngIf="errorMessage">
+            {{ errorMessage }}
+        </div>
+
+        <form [formGroup]="overtimeForm" (ngSubmit)="onSubmit()">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startDateTime">Start Date & Time *</label>
+                    <input type="datetime-local" id="startDateTime" formControlName="startDateTime"
+                        [class.invalid]="overtimeForm.get('startDateTime')?.invalid && overtimeForm.get('startDateTime')?.touched" />
+                    <div class="error-message"
+                        *ngIf="overtimeForm.get('startDateTime')?.invalid && overtimeForm.get('startDateTime')?.touched">
+                        <small *ngIf="overtimeForm.get('startDateTime')?.errors?.['required']">Start date & time is
+                            required</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="endDateTime">End Date & Time *</label>
+                    <input type="datetime-local" id="endDateTime" formControlName="endDateTime"
+                        [class.invalid]="overtimeForm.get('endDateTime')?.invalid && overtimeForm.get('endDateTime')?.touched" />
+                    <div class="error-message"
+                        *ngIf="overtimeForm.get('endDateTime')?.invalid && overtimeForm.get('endDateTime')?.touched">
+                        <small *ngIf="overtimeForm.get('endDateTime')?.errors?.['required']">End date & time is
+                            required</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hours-display" *ngIf="hoursWorked > 0">
+                <span class="label">Calculated Hours:</span>
+                <span class="value">{{ hoursWorked }} hours</span>
+            </div>
+
+            <div class="form-group">
+                <label for="reason">Reason *</label>
+                <textarea id="reason" formControlName="reason" rows="4"
+                    placeholder="Please provide a detailed reason for the overtime request..."
+                    [class.invalid]="overtimeForm.get('reason')?.invalid && overtimeForm.get('reason')?.touched"></textarea>
+                <div class="error-message"
+                    *ngIf="overtimeForm.get('reason')?.invalid && overtimeForm.get('reason')?.touched">
+                    <small *ngIf="overtimeForm.get('reason')?.errors?.['required']">Reason is required</small>
+                    <small *ngIf="overtimeForm.get('reason')?.errors?.['minlength']">Reason must be at least 10
+                        characters</small>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" (click)="cancel()" [disabled]="submitting">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary" [disabled]="overtimeForm.invalid || submitting">
+                    {{ submitting ? 'Submitting...' : 'Submit Request' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

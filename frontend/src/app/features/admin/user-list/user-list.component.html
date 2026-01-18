@@ -5,50 +5,35 @@
     <button class="btn btn-primary" (click)="openCreateDialog()">
       Add New User
     </button>
-    <input
-      type="text"
-      placeholder="Search users..."
-      class="search-input"
-      [(ngModel)]="searchTerm"
-      (ngModelChange)="onSearch()"
-    />
   </div>
 
-  <div *ngIf="isLoading()" class="loading">
-    Loading users...
-  </div>
+  <app-data-table [columns]="columns" [data]="users()" [loading]="isLoading()" [pagination]="paginationConfig()"
+    [searchable]="true" (searchChange)="onSearch($event)" (pageChange)="onPageChange($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+    <ng-template #cellTemplate let-row let-column="column">
+      <ng-container [ngSwitch]="column.field">
 
-  <div *ngIf="!isLoading()" class="table-wrapper">
-    <table class="users-table">
-      <thead>
-        <tr>
-          <th>Username</th>
-          <th>Full Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Manager</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let user of filteredUsers()">
-          <td>{{ user.username }}</td>
-          <td>{{ user.fullName }}</td>
-          <td>{{ user.email }}</td>
-          <td><span class="role-badge">{{ user.role }}</span></td>
-          <td>{{ user.managerId || '-' }}</td>
-          <td>
-            <span [class.active]="user.isActive" [class.inactive]="!user.isActive">
-              {{ user.isActive ? 'Active' : 'Inactive' }}
-            </span>
-          </td>
-          <td class="actions">
-            <button class="btn-small" (click)="editUser(user)">Edit</button>
-            <button class="btn-small" (click)="deleteUser(user.id)">Delete</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+        <span *ngSwitchCase="'role'" class="role-badge" [attr.data-role]="row.role">
+          {{ row.role }}
+        </span>
+
+        <span *ngSwitchCase="'status'">
+          <span [class.active]="row.isActive" [class.inactive]="!row.isActive" class="status-badge">
+            {{ row.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </span>
+
+        <div *ngSwitchCase="'actions'" class="action-buttons">
+            <button class="btn-icon btn-edit" (click)="editUser(row)" title="Edit">
+                ✏️
+            </button>
+            <button class="btn-icon btn-delete" (click)="deleteUser(row)" title="Delete">
+                🗑️
+            </button>
+        </div>
+
+        <span *ngSwitchDefault>{{ row[column.field] }}</span>
+      </ng-container>
+    </ng-template>
+  </app-data-table>
 </div>

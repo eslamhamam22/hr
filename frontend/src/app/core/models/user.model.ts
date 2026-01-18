@@ -4,6 +4,9 @@ export interface User {
   fullName: string;
   email: string;
   role: string;
+  managerId?: string;
+  departmentId?: string;
+  isActive: boolean;
 }
 
 export interface AuthState {
