@@ -5,11 +5,13 @@ import { OvertimeService } from '../../../../core/services/overtime.service';
 import { OvertimeRequest, RequestStatus, getStatusLabel, getStatusClass } from '../../../../core/models/overtime.model';
 import { PaginatedResponse } from '../../../../core/models/department.model';
 import { DataTableComponent, DataTableColumn, PaginationConfig } from '../../../../shared/components/data-table/data-table.component';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { OvertimeModalComponent } from './overtime-modal/overtime-modal.component';
 
 @Component({
     selector: 'app-overtime-list',
     standalone: true,
-    imports: [CommonModule, DataTableComponent],
+    imports: [CommonModule, DataTableComponent, ConfirmDialogComponent, OvertimeModalComponent],
     templateUrl: './overtime-list.component.html',
     styleUrls: ['./overtime-list.component.scss']
 })
@@ -34,6 +36,13 @@ export class OvertimeListComponent implements OnInit {
         totalItems: 0,
         pageSizeOptions: [10, 25, 50, 100]
     };
+
+    // Modal state
+    isModalOpen = false;
+
+    // Delete confirmation dialog state
+    isDeleteDialogOpen = false;
+    requestToDelete: OvertimeRequest | null = null;
 
     constructor(
         private overtimeService: OvertimeService,
@@ -83,24 +92,48 @@ export class OvertimeListComponent implements OnInit {
         this.router.navigate(['/requests/overtime', overtimeRequest.id]);
     }
 
+    // Modal operations
     createNewRequest(): void {
-        this.router.navigate(['/requests/overtime/new']);
+        this.isModalOpen = true;
     }
 
+    onModalSaved(): void {
+        this.isModalOpen = false;
+        this.loadOvertimeRequests();
+    }
+
+    onModalCancelled(): void {
+        this.isModalOpen = false;
+    }
+
+    // Delete operations
     deleteRequest(request: OvertimeRequest, event: Event): void {
         event.stopPropagation();
+        this.requestToDelete = request;
+        this.isDeleteDialogOpen = true;
+    }
 
-        if (confirm(`Are you sure you want to delete this overtime request?`)) {
-            this.overtimeService.deleteOvertime(request.id).subscribe({
+    onDeleteConfirmed(): void {
+        if (this.requestToDelete) {
+            this.overtimeService.deleteOvertime(this.requestToDelete.id).subscribe({
                 next: () => {
+                    this.isDeleteDialogOpen = false;
+                    this.requestToDelete = null;
                     this.loadOvertimeRequests();
                 },
                 error: (error) => {
                     console.error('Error deleting overtime request:', error);
+                    this.isDeleteDialogOpen = false;
+                    this.requestToDelete = null;
                     alert('Failed to delete request. Please try again.');
                 }
             });
         }
+    }
+
+    onDeleteCancelled(): void {
+        this.isDeleteDialogOpen = false;
+        this.requestToDelete = null;
     }
 
     getStatusLabel(status: RequestStatus): string {

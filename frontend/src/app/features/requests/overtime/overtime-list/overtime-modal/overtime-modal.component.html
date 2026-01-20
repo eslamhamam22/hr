@@ -1,0 +1,62 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onCancel()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>{{ title }}</h2>
+            <button class="btn-close" (click)="onCancel()" aria-label="Close">×</button>
+        </div>
+
+        <form [formGroup]="overtimeForm" (ngSubmit)="onSubmit()">
+            <div class="modal-body">
+                <div class="alert alert-error" *ngIf="errorMessage">
+                    {{ errorMessage }}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startDateTime">Start Date & Time <span class="required">*</span></label>
+                        <input type="datetime-local" id="startDateTime" formControlName="startDateTime"
+                            [class.invalid]="isFieldInvalid('startDateTime')">
+                        <span class="error-text" *ngIf="isFieldInvalid('startDateTime')">
+                            {{ getFieldError('startDateTime') }}
+                        </span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endDateTime">End Date & Time <span class="required">*</span></label>
+                        <input type="datetime-local" id="endDateTime" formControlName="endDateTime"
+                            [class.invalid]="isFieldInvalid('endDateTime')">
+                        <span class="error-text" *ngIf="isFieldInvalid('endDateTime')">
+                            {{ getFieldError('endDateTime') }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="hours-display" *ngIf="calculatedHours > 0">
+                    <div class="hours-label">Calculated Overtime Hours</div>
+                    <div class="hours-value">{{ calculatedHours }} hours</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="reason">Reason <span class="required">*</span></label>
+                    <textarea id="reason" formControlName="reason" [class.invalid]="isFieldInvalid('reason')"
+                        placeholder="Please provide a reason for your overtime work..." rows="4"></textarea>
+                    <span class="error-text" *ngIf="isFieldInvalid('reason')">
+                        {{ getFieldError('reason') }}
+                    </span>
+                    <span class="char-count">
+                        {{ overtimeForm.get('reason')?.value?.length || 0 }} / 500
+                    </span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isSubmitting">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="isSubmitting">
+                    {{ submitButtonText }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

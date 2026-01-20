@@ -5,18 +5,23 @@ import { StatusColorPipe } from '../../../shared/pipes/status-color.pipe';
 import { RequestService } from '../../../core/services/request.service';
 import { Request } from '../../../core/models/request.model';
 import { AuthService } from '@core/auth/auth.service';
+import { RequestModalComponent } from './request-modal/request-modal.component';
 
 @Component({
   selector: 'app-request-list',
   standalone: true,
-  imports: [CommonModule, DataTableComponent, StatusColorPipe],
+  imports: [CommonModule, DataTableComponent, StatusColorPipe, RequestModalComponent],
   providers: [StatusColorPipe],
   templateUrl: './request-list.component.html',
+  styleUrls: ['./request-list.component.scss']
 })
 export class RequestListComponent implements OnInit {
   requests = signal<Request[]>([]);
   isLoading = signal(false);
   errorMessage = signal('');
+
+  // Modal state
+  isModalOpen = false;
 
   columns: DataTableColumn[] = [
     { header: 'Request Type', field: 'requestType' },
@@ -31,7 +36,7 @@ export class RequestListComponent implements OnInit {
     private requestService: RequestService,
     private statusColorPipe: StatusColorPipe,
     private authService: AuthService
-  ) {}
+  ) { }
 
   getRowStyle = (request: Request) => {
     return { 'background-color': this.statusColorPipe.transform(request.status) };
@@ -55,5 +60,19 @@ export class RequestListComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
+  }
+
+  // Modal operations
+  openCreateModal(): void {
+    this.isModalOpen = true;
+  }
+
+  onModalSaved(): void {
+    this.isModalOpen = false;
+    this.refreshData();
+  }
+
+  onModalCancelled(): void {
+    this.isModalOpen = false;
   }
 }

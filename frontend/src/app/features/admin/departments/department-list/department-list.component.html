@@ -40,3 +40,14 @@
         </ng-template>
     </app-data-table>
 </div>
+
+<!-- Department Modal -->
+<app-department-modal [isOpen]="isModalOpen" [mode]="modalMode" [department]="selectedDepartment"
+    (saved)="onModalSaved()" (cancelled)="onModalCancelled()">
+</app-department-modal>
+
+<!-- Delete Confirmation Dialog -->
+<app-confirm-dialog [isOpen]="isDeleteDialogOpen" title="Delete Department"
+    [message]="'Are you sure you want to delete department \'' + (departmentToDelete?.name || '') + '\'? This action cannot be undone.'"
+    confirmText="Delete" (confirmed)="onDeleteConfirmed()" (cancelled)="onDeleteCancelled()">
+</app-confirm-dialog>

@@ -26,35 +26,64 @@ export interface CreateOvertimeDto {
     reason: string;
 }
 
+/**
+ * Request status enum - matches backend RequestStatus
+ * Workflow: Draft -> Submitted -> (Manager approval) -> PendingHR -> (HR approval) -> Approved
+ *           Any pending status can be -> Rejected
+ */
 export enum RequestStatus {
-    Draft = 0,
-    Submitted = 1,
-    ManagerApproved = 2,
-    HRApproved = 3,
-    Approved = 4,
-    Rejected = 5
+    Draft = 1,
+    Submitted = 2,        // Waiting for Manager approval
+    PendingManager = 3,   // Legacy, same as Submitted
+    PendingHR = 4,        // Manager approved, waiting for HR
+    Approved = 5,         // Final approved
+    Rejected = 6,         // Rejected at any stage
+    Cancelled = 7,        // Cancelled by user
+    Withdrawn = 8         // Withdrawn by user
 }
 
-export function getStatusLabel(status: RequestStatus): string {
+export function getStatusLabel(status: RequestStatus | number): string {
     switch (status) {
         case RequestStatus.Draft: return 'Draft';
-        case RequestStatus.Submitted: return 'Submitted';
-        case RequestStatus.ManagerApproved: return 'Manager Approved';
-        case RequestStatus.HRApproved: return 'HR Approved';
+        case RequestStatus.Submitted: return 'Pending Manager';
+        case RequestStatus.PendingManager: return 'Pending Manager';
+        case RequestStatus.PendingHR: return 'Pending HR';
         case RequestStatus.Approved: return 'Approved';
         case RequestStatus.Rejected: return 'Rejected';
+        case RequestStatus.Cancelled: return 'Cancelled';
+        case RequestStatus.Withdrawn: return 'Withdrawn';
         default: return 'Unknown';
     }
 }
 
-export function getStatusClass(status: RequestStatus): string {
+export function getStatusClass(status: RequestStatus | number): string {
     switch (status) {
         case RequestStatus.Draft: return 'status-draft';
-        case RequestStatus.Submitted: return 'status-submitted';
-        case RequestStatus.ManagerApproved: return 'status-manager-approved';
-        case RequestStatus.HRApproved: return 'status-hr-approved';
+        case RequestStatus.Submitted: return 'status-pending';
+        case RequestStatus.PendingManager: return 'status-pending';
+        case RequestStatus.PendingHR: return 'status-pending-hr';
         case RequestStatus.Approved: return 'status-approved';
         case RequestStatus.Rejected: return 'status-rejected';
+        case RequestStatus.Cancelled: return 'status-cancelled';
+        case RequestStatus.Withdrawn: return 'status-withdrawn';
         default: return '';
     }
+}
+
+/**
+ * Check if request is in a pending state (awaiting any approval)
+ */
+export function isPendingApproval(status: RequestStatus | number): boolean {
+    return status === RequestStatus.Submitted ||
+        status === RequestStatus.PendingManager ||
+        status === RequestStatus.PendingHR;
+}
+
+/**
+ * Check if request can be approved by the current user role
+ */
+export function canApprove(status: RequestStatus | number, isManager: boolean, isHR: boolean): boolean {
+    if (status === RequestStatus.Submitted && (isManager || isHR)) return true;
+    if (status === RequestStatus.PendingHR && isHR) return true;
+    return false;
 }

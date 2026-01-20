@@ -22,6 +22,94 @@ public class LeaveRequestService : ILeaveRequestService
         _userRepository = userRepository;
     }
 
+    /// <summary>
+    /// Create a leave request. Status depends on who creates it:
+    /// - Employee creates for self: Draft (needs to submit) or Submitted (goes to manager)
+    /// - Manager/HR creates for employee: Goes directly to PendingHR (skips manager approval)
+    /// </summary>
+    public async Task<LeaveRequestDto?> CreateLeaveRequestAsync(
+        Guid requestorUserId,
+        Guid targetUserId,
+        int leaveTypeId, 
+        DateTime startDate, 
+        DateTime endDate, 
+        string reason,
+        bool submitImmediately = false,
+        CancellationToken cancellationToken = default)
+    {
+        var requestor = await _userRepository.GetByIdAsync(requestorUserId, cancellationToken);
+        var targetUser = await _userRepository.GetByIdAsync(targetUserId, cancellationToken);
+        
+        if (requestor == null || targetUser == null)
+            return null;
+
+        var request = new LeaveRequest
+        {
+            UserId = targetUserId,
+            LeaveType = (LeaveType)leaveTypeId,
+            StartDate = startDate,
+            EndDate = endDate,
+            Reason = reason,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Calculate total days
+        request.TotalDays = (endDate - startDate).Days + 1;
+
+        // Determine initial status based on who creates the request
+        bool isCreatorManager = requestor.Role == RoleType.Manager || requestor.Role == RoleType.HR || requestor.Role == RoleType.Admin;
+        bool isCreatingForSelf = requestorUserId == targetUserId;
+
+        if (isCreatingForSelf)
+        {
+            // Employee creating for themselves
+            if (isCreatorManager)
+            {
+                // Manager/HR creating for themselves - goes directly to HR for final approval
+                request.Status = submitImmediately ? RequestStatus.PendingHR : RequestStatus.Draft;
+                request.SubmittedAt = submitImmediately ? DateTime.UtcNow : null;
+            }
+            else
+            {
+                // Regular employee - needs manager approval first
+                request.Status = submitImmediately ? RequestStatus.Submitted : RequestStatus.Draft;
+                request.SubmittedAt = submitImmediately ? DateTime.UtcNow : null;
+            }
+        }
+        else
+        {
+            // Creating for someone else (Manager/HR creating for employee)
+            if (requestor.Role == RoleType.HR || requestor.Role == RoleType.Admin)
+            {
+                // HR creates for employee - auto-approved
+                request.Status = RequestStatus.Approved;
+                request.ApprovedByHRId = requestorUserId;
+                request.ApprovedAt = DateTime.UtcNow;
+                request.SubmittedAt = DateTime.UtcNow;
+            }
+            else if (requestor.Role == RoleType.Manager)
+            {
+                // Manager creates for their employee - goes to HR for final approval
+                request.Status = submitImmediately ? RequestStatus.PendingHR : RequestStatus.Draft;
+                request.ManagerId = requestorUserId;
+                request.SubmittedAt = submitImmediately ? DateTime.UtcNow : null;
+            }
+            else
+            {
+                // Regular employee cannot create for others
+                return null;
+            }
+        }
+
+        await _leaveRequestRepository.AddAsync(request, cancellationToken);
+        await _leaveRequestRepository.SaveChangesAsync(cancellationToken);
+
+        return MapToDto(request);
+    }
+
+    /// <summary>
+    /// Legacy method for backward compatibility
+    /// </summary>
     public async Task<bool> CreateLeaveRequestAsync(
         Guid userId, 
         int leaveTypeId, 
@@ -30,27 +118,13 @@ public class LeaveRequestService : ILeaveRequestService
         string reason, 
         CancellationToken cancellationToken = default)
     {
-        // Simple logic for now, ideally validate balance etc but skipping for brevity as per "completing APIs"
-        var request = new LeaveRequest
-        {
-            UserId = userId,
-            LeaveType = (LeaveType)leaveTypeId,
-            StartDate = startDate,
-            EndDate = endDate,
-            Reason = reason,
-            Status = RequestStatus.Draft,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        // Calculate total days (simple)
-        request.TotalDays = (endDate - startDate).Days + 1;
-
-        await _leaveRequestRepository.AddAsync(request, cancellationToken);
-        await _leaveRequestRepository.SaveChangesAsync(cancellationToken);
-
-        return true;
+        var result = await CreateLeaveRequestAsync(userId, userId, leaveTypeId, startDate, endDate, reason, false, cancellationToken);
+        return result != null;
     }
 
+    /// <summary>
+    /// Submit a draft request - moves to Submitted (waiting for manager) or PendingHR (if manager)
+    /// </summary>
     public async Task<bool> SubmitLeaveRequestAsync(Guid requestId, CancellationToken cancellationToken = default)
     {
         var request = await _leaveRequestRepository.GetByIdAsync(requestId, cancellationToken);
@@ -58,7 +132,20 @@ public class LeaveRequestService : ILeaveRequestService
         if (request == null || request.Status != RequestStatus.Draft)
             return false;
 
-        request.Status = RequestStatus.Submitted;
+        // Get the user to determine workflow
+        var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
+        if (user == null) return false;
+
+        // If user is a Manager/HR/Admin, skip manager approval
+        if (user.Role == RoleType.Manager || user.Role == RoleType.HR || user.Role == RoleType.Admin)
+        {
+            request.Status = RequestStatus.PendingHR;
+        }
+        else
+        {
+            request.Status = RequestStatus.Submitted;
+        }
+        
         request.SubmittedAt = DateTime.UtcNow;
         request.UpdatedAt = DateTime.UtcNow;
 
@@ -68,35 +155,87 @@ public class LeaveRequestService : ILeaveRequestService
         return true;
     }
 
+    /// <summary>
+    /// Manager approves - moves to PendingHR
+    /// HR approves - moves to Approved (final)
+    /// </summary>
     public async Task<bool> ApproveLeaveRequestAsync(Guid requestId, Guid approverUserId, CancellationToken cancellationToken = default)
     {
         var request = await _leaveRequestRepository.GetByIdAsync(requestId, cancellationToken);
+        if (request == null) return false;
 
-        if (request == null || request.Status != RequestStatus.Submitted)
-            return false;
+        var approver = await _userRepository.GetByIdAsync(approverUserId, cancellationToken);
+        if (approver == null) return false;
 
-        request.Status = RequestStatus.Approved;
-        request.ApprovedByHRId = approverUserId;
-        request.ApprovedAt = DateTime.UtcNow;
-        request.UpdatedAt = DateTime.UtcNow;
+        bool isHROrAdmin = approver.Role == RoleType.HR || approver.Role == RoleType.Admin;
+        bool isManager = approver.Role == RoleType.Manager;
 
-        _leaveRequestRepository.Update(request);
-        await _leaveRequestRepository.SaveChangesAsync(cancellationToken);
+        // Manager approval (from Submitted status)
+        if (request.Status == RequestStatus.Submitted && (isManager || isHROrAdmin))
+        {
+            request.ManagerId = approverUserId;
+            
+            if (isHROrAdmin)
+            {
+                // HR can do both approvals at once
+                request.Status = RequestStatus.Approved;
+                request.ApprovedByHRId = approverUserId;
+                request.ApprovedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                // Manager approves, now needs HR
+                request.Status = RequestStatus.PendingHR;
+            }
+            
+            request.UpdatedAt = DateTime.UtcNow;
+            _leaveRequestRepository.Update(request);
+            await _leaveRequestRepository.SaveChangesAsync(cancellationToken);
+            return true;
+        }
 
-        return true;
+        // HR final approval (from PendingHR status)
+        if (request.Status == RequestStatus.PendingHR && isHROrAdmin)
+        {
+            request.Status = RequestStatus.Approved;
+            request.ApprovedByHRId = approverUserId;
+            request.ApprovedAt = DateTime.UtcNow;
+            request.UpdatedAt = DateTime.UtcNow;
+
+            _leaveRequestRepository.Update(request);
+            await _leaveRequestRepository.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        return false;
     }
 
+    /// <summary>
+    /// Reject request - can be done by Manager (from Submitted) or HR (from any pending status)
+    /// </summary>
     public async Task<bool> RejectLeaveRequestAsync(Guid requestId, Guid approverUserId, string rejectionReason, CancellationToken cancellationToken = default)
     {
         var request = await _leaveRequestRepository.GetByIdAsync(requestId, cancellationToken);
+        if (request == null) return false;
 
-        if (request == null || request.Status != RequestStatus.Submitted)
+        var approver = await _userRepository.GetByIdAsync(approverUserId, cancellationToken);
+        if (approver == null) return false;
+
+        bool isHROrAdmin = approver.Role == RoleType.HR || approver.Role == RoleType.Admin;
+        bool isManager = approver.Role == RoleType.Manager;
+
+        // Check if approver can reject this request
+        bool canReject = false;
+        if (request.Status == RequestStatus.Submitted && (isManager || isHROrAdmin))
+            canReject = true;
+        if (request.Status == RequestStatus.PendingHR && isHROrAdmin)
+            canReject = true;
+
+        if (!canReject)
             return false;
 
         request.Status = RequestStatus.Rejected;
-        request.ApprovedByHRId = approverUserId; // Recorder of rejection
         request.RejectionReason = rejectionReason;
-        request.ApprovedAt = DateTime.UtcNow; // Used as DecisionAt
         request.UpdatedAt = DateTime.UtcNow;
 
         _leaveRequestRepository.Update(request);
@@ -113,8 +252,6 @@ public class LeaveRequestService : ILeaveRequestService
         CancellationToken cancellationToken = default)
     {
          var query = _leaveRequestRepository.GetQueryable();
-         
-         // TODO: Include User if supported by Repository implementation, usually implies eager loading or projection
          
          if (userId.HasValue)
          {
@@ -136,7 +273,6 @@ public class LeaveRequestService : ILeaveRequestService
              {
                  Id = r.Id,
                  UserId = r.UserId,
-                 // UserName = r.User.FullName, // Assuming navigation property isn't easily available in simple projection without Include
                  LeaveTypeId = (int)r.LeaveType,
                  LeaveTypeName = r.LeaveType.ToString(),
                  StartDate = r.StartDate,
@@ -156,28 +292,65 @@ public class LeaveRequestService : ILeaveRequestService
          return new PaginatedResult<LeaveRequestDto>(items, totalCount, page, pageSize);
     }
 
+    /// <summary>
+    /// Get pending requests for a manager to approve
+    /// </summary>
+    public async Task<IEnumerable<LeaveRequestDto>> GetPendingForManagerAsync(Guid managerId, CancellationToken cancellationToken = default)
+    {
+        // Get all users under this manager
+        var subordinateIds = await _userRepository.GetQueryable()
+            .Where(u => u.ManagerId == managerId)
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+
+        var requests = await _leaveRequestRepository.GetQueryable()
+            .Where(r => subordinateIds.Contains(r.UserId) && r.Status == RequestStatus.Submitted)
+            .OrderByDescending(r => r.SubmittedAt)
+            .ToListAsync(cancellationToken);
+
+        return requests.Select(MapToDto);
+    }
+
+    /// <summary>
+    /// Get pending requests for HR to approve
+    /// </summary>
+    public async Task<IEnumerable<LeaveRequestDto>> GetPendingForHRAsync(CancellationToken cancellationToken = default)
+    {
+        var requests = await _leaveRequestRepository.GetQueryable()
+            .Where(r => r.Status == RequestStatus.PendingHR)
+            .OrderByDescending(r => r.SubmittedAt)
+            .ToListAsync(cancellationToken);
+
+        return requests.Select(MapToDto);
+    }
+
     public async Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var r = await _leaveRequestRepository.GetByIdAsync(id, cancellationToken);
         if (r == null) return null;
 
+        return MapToDto(r);
+    }
+
+    private LeaveRequestDto MapToDto(LeaveRequest r)
+    {
         return new LeaveRequestDto
         {
-             Id = r.Id,
-             UserId = r.UserId,
-             LeaveTypeId = (int)r.LeaveType,
-             LeaveTypeName = r.LeaveType.ToString(),
-             StartDate = r.StartDate,
-             EndDate = r.EndDate,
-             Reason = r.Reason,
-             Status = r.Status,
-             ManagerId = r.ManagerId,
-             ApprovedByHRId = r.ApprovedByHRId,
-             SubmittedAt = r.SubmittedAt,
-             ApprovedAt = r.ApprovedAt,
-             RejectionReason = r.RejectionReason,
-             CreatedAt = r.CreatedAt,
-             UpdatedAt = r.UpdatedAt
+            Id = r.Id,
+            UserId = r.UserId,
+            LeaveTypeId = (int)r.LeaveType,
+            LeaveTypeName = r.LeaveType.ToString(),
+            StartDate = r.StartDate,
+            EndDate = r.EndDate,
+            Reason = r.Reason,
+            Status = r.Status,
+            ManagerId = r.ManagerId,
+            ApprovedByHRId = r.ApprovedByHRId,
+            SubmittedAt = r.SubmittedAt,
+            ApprovedAt = r.ApprovedAt,
+            RejectionReason = r.RejectionReason,
+            CreatedAt = r.CreatedAt,
+            UpdatedAt = r.UpdatedAt
         };
     }
 }

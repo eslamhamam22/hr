@@ -1,45 +1,219 @@
 <div class="dashboard-container">
-  <h1>Welcome, {{ authService.user()?.fullName }}</h1>
-
-  <div class="summary-grid">
-    <div class="summary-card">
-      <h3>Your Role</h3>
-      <p class="value">{{ authService.user()?.role }}</p>
-    </div>
-
-    <div class="summary-card">
-      <h3>Department</h3>
-      <p class="value">{{ userDepartment() }}</p>
-    </div>
-
-    <div class="summary-card">
-      <h3>Email</h3>
-      <p class="value">{{ authService.user()?.email }}</p>
-    </div>
-
-    <div class="summary-card">
-      <h3>Leave Balance</h3>
-      <p class="value">{{ leaveBalance() }} days</p>
-    </div>
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading dashboard...</p>
   </div>
 
-  <section class="quick-actions">
-    <h2>Quick Actions</h2>
-    <div class="action-buttons">
-      <button class="btn btn-primary" (click)="navigateTo('requests')">
-        Submit Leave Request
-      </button>
-      <button class="btn btn-secondary" (click)="navigateTo('requests')">
-        View My Requests
-      </button>
-      <button class="btn btn-secondary" (click)="navigateTo('attendance')">
-        View Attendance
-      </button>
-    </div>
-  </section>
+  <!-- Error State -->
+  <div *ngIf="errorMessage()" class="alert alert-error">
+    {{ errorMessage() }}
+    <button class="btn btn-secondary" (click)="loadDashboard()">Retry</button>
+  </div>
 
-  <section class="recent-activity">
-    <h2>Recent Activity</h2>
-    <p class="no-data">No recent activity</p>
-  </section>
+  <!-- Dashboard Content -->
+  <div *ngIf="!isLoading() && !errorMessage() && dashboard()" class="dashboard-content">
+    <!-- Welcome Header -->
+    <div class="welcome-header">
+      <div class="welcome-text">
+        <h1>Welcome back, {{ dashboard()?.employeeName }} 👋</h1>
+        <p class="subtitle">{{ dashboard()?.role }} • {{ dashboard()?.departmentName }}</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" (click)="navigateTo('requests')">
+          ➕ New Leave Request
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <!-- Leave Summary Card -->
+      <div class="summary-card leave-card">
+        <div class="card-header">
+          <span class="card-icon">📅</span>
+          <h3>Leave Balance</h3>
+        </div>
+        <div class="card-content">
+          <div class="main-stat">
+            <span class="stat-value">{{ dashboard()?.leaveSummary?.totalDaysRemaining }}</span>
+            <span class="stat-label">Days Remaining</span>
+          </div>
+          <div class="stat-row">
+            <div class="mini-stat">
+              <span class="value">{{ dashboard()?.leaveSummary?.totalDaysUsed }}</span>
+              <span class="label">Used</span>
+            </div>
+            <div class="mini-stat">
+              <span class="value">{{ dashboard()?.leaveSummary?.pendingRequests }}</span>
+              <span class="label">Pending</span>
+            </div>
+            <div class="mini-stat">
+              <span class="value">{{ dashboard()?.leaveSummary?.approvedRequests }}</span>
+              <span class="label">Approved</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overtime Summary Card -->
+      <div class="summary-card overtime-card">
+        <div class="card-header">
+          <span class="card-icon">⏰</span>
+          <h3>Overtime This Month</h3>
+        </div>
+        <div class="card-content">
+          <div class="main-stat">
+            <span class="stat-value">{{ dashboard()?.overtimeSummary?.totalHours || 0 }}</span>
+            <span class="stat-label">Hours Approved</span>
+          </div>
+          <div class="stat-row">
+            <div class="mini-stat">
+              <span class="value">{{ dashboard()?.overtimeSummary?.totalRequests }}</span>
+              <span class="label">Total</span>
+            </div>
+            <div class="mini-stat">
+              <span class="value">{{ dashboard()?.overtimeSummary?.pendingRequests }}</span>
+              <span class="label">Pending</span>
+            </div>
+            <div class="mini-stat">
+              <span class="value">{{ dashboard()?.overtimeSummary?.approvedRequests }}</span>
+              <span class="label">Approved</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manager: Pending Approvals Card -->
+      <div *ngIf="managerDashboard()" class="summary-card approvals-card">
+        <div class="card-header">
+          <span class="card-icon">📋</span>
+          <h3>Pending Approvals</h3>
+        </div>
+        <div class="card-content">
+          <div class="main-stat">
+            <span class="stat-value highlight">{{ managerDashboard()?.pendingApprovalsCount }}</span>
+            <span class="stat-label">Awaiting Review</span>
+          </div>
+          <button class="btn btn-primary btn-block" (click)="navigateTo('approvals')">
+            Review Requests
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leave by Type -->
+    <div class="section" *ngIf="dashboard()?.leaveSummary?.byLeaveType?.length">
+      <h2>Leave Days by Type</h2>
+      <div class="chart-container horizontal-bar-chart">
+        <div class="bar-item" *ngFor="let item of dashboard()?.leaveSummary?.byLeaveType">
+          <div class="bar-label">{{ item.leaveType }}</div>
+          <div class="bar-track">
+            <div class="bar-fill" [style.width]="getChartBarWidth(item.days, 21)"></div>
+          </div>
+          <div class="bar-value">{{ item.days }} days</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Requests -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Recent Activity</h2>
+        <button class="btn btn-link" (click)="navigateTo('requests')">View All →</button>
+      </div>
+
+      <div class="recent-requests-list" *ngIf="dashboard()?.recentRequests?.length; else noRequests">
+        <div class="request-item" *ngFor="let request of dashboard()?.recentRequests">
+          <div class="request-icon" [class]="request.requestType.includes('Overtime') ? 'overtime' : 'leave'">
+            {{ request.requestType.includes('Overtime') ? '⏰' : '📅' }}
+          </div>
+          <div class="request-info">
+            <div class="request-type">{{ request.requestType }}</div>
+            <div class="request-dates">
+              {{ formatDate(request.startDate) }} - {{ formatDate(request.endDate) }}
+              <span *ngIf="request.days"> • {{ request.days }} days</span>
+              <span *ngIf="request.hours"> • {{ request.hours }} hrs</span>
+            </div>
+          </div>
+          <div class="request-status">
+            <span class="status-badge" [class]="getStatusClass(request.status)">
+              {{ request.status }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noRequests>
+        <div class="empty-state">
+          <span class="empty-icon">📭</span>
+          <p>No recent requests</p>
+          <button class="btn btn-primary" (click)="navigateTo('requests')">Create Your First Request</button>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- Manager Section: Team Summary -->
+    <div class="section manager-section" *ngIf="managerDashboard()?.teamSummary?.length">
+      <h2>Team Summary</h2>
+      <div class="team-grid">
+        <div class="team-member-card" *ngFor="let member of managerDashboard()?.teamSummary">
+          <div class="member-avatar">{{ member.userName.charAt(0) }}</div>
+          <div class="member-info">
+            <div class="member-name">{{ member.userName }}</div>
+            <div class="member-stats">
+              <span class="stat">📅 {{ member.leaveDays }} days</span>
+              <span class="stat">⏰ {{ member.overtimeHours }} hrs</span>
+              <span class="stat pending" *ngIf="member.pendingRequests > 0">
+                🔔 {{ member.pendingRequests }} pending
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manager Section: Monthly Trend Chart -->
+    <div class="section manager-section" *ngIf="managerDashboard()?.monthlyTrend?.length">
+      <h2>Monthly Request Trend</h2>
+      <div class="trend-chart">
+        <div class="trend-bar" *ngFor="let trend of managerDashboard()?.monthlyTrend">
+          <div class="bar-container">
+            <div class="bar leave-bar" [style.height]="getChartBarWidth(trend.leaveRequests, getMaxTrendValue())"
+              title="Leave: {{ trend.leaveRequests }}"></div>
+            <div class="bar overtime-bar" [style.height]="getChartBarWidth(trend.overtimeRequests, getMaxTrendValue())"
+              title="Overtime: {{ trend.overtimeRequests }}"></div>
+          </div>
+          <div class="bar-label">{{ trend.month }}</div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-color leave"></span> Leave Requests</span>
+        <span class="legend-item"><span class="legend-color overtime"></span> Overtime Requests</span>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section quick-actions">
+      <h2>Quick Actions</h2>
+      <div class="action-grid">
+        <button class="action-card" (click)="navigateTo('requests/list')">
+          <span class="action-icon">📝</span>
+          <span class="action-label">Submit Leave Request</span>
+        </button>
+        <button class="action-card" (click)="navigateTo('requests/overtime')">
+          <span class="action-icon">⏱️</span>
+          <span class="action-label">Submit Overtime Request</span>
+        </button>
+        <button class="action-card" (click)="navigateTo('admin/attendance')">
+          <span class="action-icon">📊</span>
+          <span class="action-label">View Attendance</span>
+        </button>
+        <button class="action-card" *ngIf="isManager()" (click)="navigateTo('approvals')">
+          <span class="action-icon">✅</span>
+          <span class="action-label">Review Approvals</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

@@ -1,8 +1,11 @@
 <div class="user-list-container">
-  <h1>User Management</h1>
-
-  <div class="toolbar">
+  <div class="page-header">
+    <div class="header-content">
+      <h1>User Management</h1>
+      <p class="subtitle">Manage system users and their access</p>
+    </div>
     <button class="btn btn-primary" (click)="openCreateDialog()">
+      <span class="icon">➕</span>
       Add New User
     </button>
   </div>
@@ -10,11 +13,11 @@
   <app-data-table [columns]="columns" [data]="users()" [loading]="isLoading()" [pagination]="paginationConfig()"
     [searchable]="true" (searchChange)="onSearch($event)" (pageChange)="onPageChange($event)"
     (pageSizeChange)="onPageSizeChange($event)">
+
     <ng-template #cellTemplate let-row let-column="column">
       <ng-container [ngSwitch]="column.field">
-
-        <span *ngSwitchCase="'role'" class="role-badge" [attr.data-role]="row.role">
-          {{ row.role }}
+        <span *ngSwitchCase="'role'" class="role-badge" [attr.data-role]="getRoleDisplayLabel(row.role)">
+          {{ getRoleDisplayLabel(row.role) }}
         </span>
 
         <span *ngSwitchCase="'status'">
@@ -24,12 +27,12 @@
         </span>
 
         <div *ngSwitchCase="'actions'" class="action-buttons">
-            <button class="btn-icon btn-edit" (click)="editUser(row)" title="Edit">
-                ✏️
-            </button>
-            <button class="btn-icon btn-delete" (click)="deleteUser(row)" title="Delete">
-                🗑️
-            </button>
+          <button class="btn-icon btn-edit" (click)="editUser(row)" title="Edit">
+            ✏️
+          </button>
+          <button class="btn-icon btn-delete" (click)="deleteUser(row)" title="Delete">
+            🗑️
+          </button>
         </div>
 
         <span *ngSwitchDefault>{{ row[column.field] }}</span>
@@ -37,3 +40,14 @@
     </ng-template>
   </app-data-table>
 </div>
+
+<!-- User Modal -->
+<app-user-modal [isOpen]="isModalOpen" [mode]="modalMode" [user]="selectedUser" (saved)="onModalSaved()"
+  (cancelled)="onModalCancelled()">
+</app-user-modal>
+
+<!-- Delete Confirmation Dialog -->
+<app-confirm-dialog [isOpen]="isDeleteDialogOpen" title="Delete User"
+  [message]="'Are you sure you want to delete user \'' + (userToDelete?.fullName || '') + '\'? This action cannot be undone.'"
+  confirmText="Delete" (confirmed)="onDeleteConfirmed()" (cancelled)="onDeleteCancelled()">
+</app-confirm-dialog>

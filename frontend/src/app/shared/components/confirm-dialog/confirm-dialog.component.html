@@ -1,6 +1,9 @@
 <div class="dialog-overlay" *ngIf="isOpen" (click)="onCancel()">
   <div class="dialog-content" (click)="$event.stopPropagation()">
-    <h2>{{ title }}</h2>
+    <div class="dialog-header">
+      <div class="dialog-icon">⚠️</div>
+      <h2>{{ title }}</h2>
+    </div>
     <p>{{ message }}</p>
     <div class="dialog-actions">
       <button class="btn btn-secondary" (click)="onCancel()">Cancel</button>

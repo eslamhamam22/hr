@@ -1,11 +1,15 @@
+import { RoleType } from './role-type.enum';
+
 export interface User {
   id: string;
   username: string;
   fullName: string;
   email: string;
-  role: string;
+  role: RoleType;
   managerId?: string;
+  managerName?: string;
   departmentId?: string;
+  departmentName?: string;
   isActive: boolean;
 }
 

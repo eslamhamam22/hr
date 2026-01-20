@@ -46,3 +46,13 @@
         </ng-template>
     </app-data-table>
 </div>
+
+<!-- Overtime Request Modal -->
+<app-overtime-modal [isOpen]="isModalOpen" (saved)="onModalSaved()" (cancelled)="onModalCancelled()">
+</app-overtime-modal>
+
+<!-- Delete Confirmation Dialog -->
+<app-confirm-dialog [isOpen]="isDeleteDialogOpen" title="Delete Overtime Request"
+    message="Are you sure you want to delete this overtime request? This action cannot be undone." confirmText="Delete"
+    (confirmed)="onDeleteConfirmed()" (cancelled)="onDeleteCancelled()">
+</app-confirm-dialog>

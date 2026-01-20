@@ -3,12 +3,13 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { User } from '../models/user.model';
 import { PaginatedResponse } from '../models/department.model';
+import { RoleType } from '../models/role-type.enum';
 
 export interface CreateUserDto {
     username: string;
     fullName: string;
     email: string;
-    role: string;
+    role: RoleType;
     managerId?: string;
     departmentId?: string;
     password?: string;
@@ -17,7 +18,7 @@ export interface CreateUserDto {
 export interface UpdateUserDto {
     fullName: string;
     email: string;
-    role: string;
+    role: RoleType;
     managerId?: string;
     departmentId?: string;
     isActive: boolean;

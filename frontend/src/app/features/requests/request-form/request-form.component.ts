@@ -46,11 +46,13 @@ export class RequestFormComponent implements OnInit {
     const formValue = this.requestForm.value;
     this.requestService.createLeaveRequest(formValue).subscribe({
       next: () => {
+        debugger;
         this.successMessage.set('Leave request submitted successfully!');
         this.requestForm.reset();
         this.isSubmitting.set(false);
       },
       error: (error) => {
+        debugger;
         this.errorMessage.set('Failed to submit request. Please try again.');
         this.isSubmitting.set(false);
       }

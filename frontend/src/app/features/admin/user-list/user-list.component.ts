@@ -3,12 +3,15 @@ import { CommonModule } from '@angular/common';
 import { UserService } from '../../../core/services/user.service';
 import { User } from '../../../core/models/user.model';
 import { DataTableComponent, DataTableColumn, PaginationConfig } from '../../../shared/components/data-table/data-table.component';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { UserModalComponent } from './user-modal/user-modal.component';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { getRoleLabel } from '../../../core/models/role-type.enum';
 
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, DataTableComponent],
+  imports: [CommonModule, DataTableComponent, ConfirmDialogComponent, UserModalComponent],
   templateUrl: './user-list.component.html',
   styleUrls: ['./user-list.component.scss']
 })
@@ -43,6 +46,15 @@ export class UserListComponent implements OnInit {
   searchTerm = '';
   private searchSubject = new Subject<string>();
 
+  // Modal state
+  isModalOpen = false;
+  modalMode: 'create' | 'edit' = 'create';
+  selectedUser: User | null = null;
+
+  // Delete confirmation dialog state
+  isDeleteDialogOpen = false;
+  userToDelete: User | null = null;
+
   constructor(private userService: UserService) {
     this.searchSubject.pipe(
       debounceTime(300),
@@ -59,18 +71,15 @@ export class UserListComponent implements OnInit {
   }
 
   loadUsers(): void {
-    debugger;
     this.isLoading.set(true);
     this.userService.getUsers(this.currentPage(), this.pageSize(), this.searchTerm)
       .subscribe({
         next: (response) => {
-    debugger;
           this.users.set(response.items);
           this.totalItems.set(response.totalCount);
           this.isLoading.set(false);
         },
         error: (error) => {
-    debugger;
           console.error('Error loading users:', error);
           this.isLoading.set(false);
         }
@@ -92,25 +101,61 @@ export class UserListComponent implements OnInit {
     this.loadUsers();
   }
 
-  editUser(user: User): void {
-    console.log('Edit user:', user);
+  // Get role label for display
+  getRoleDisplayLabel(role: number): string {
+    return getRoleLabel(role);
   }
 
+  // Modal operations
+  openCreateDialog(): void {
+    this.modalMode = 'create';
+    this.selectedUser = null;
+    this.isModalOpen = true;
+  }
+
+  editUser(user: User): void {
+    this.modalMode = 'edit';
+    this.selectedUser = user;
+    this.isModalOpen = true;
+  }
+
+  onModalSaved(): void {
+    this.isModalOpen = false;
+    this.selectedUser = null;
+    this.loadUsers();
+  }
+
+  onModalCancelled(): void {
+    this.isModalOpen = false;
+    this.selectedUser = null;
+  }
+
+  // Delete operations
   deleteUser(user: User): void {
-    if (confirm('Are you sure you want to delete this user?')) {
-      this.userService.deleteUser(user.id).subscribe({
+    this.userToDelete = user;
+    this.isDeleteDialogOpen = true;
+  }
+
+  onDeleteConfirmed(): void {
+    if (this.userToDelete) {
+      this.userService.deleteUser(this.userToDelete.id).subscribe({
         next: () => {
+          this.isDeleteDialogOpen = false;
+          this.userToDelete = null;
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error deleting user:', error);
-          alert('Failed to delete user');
+          this.isDeleteDialogOpen = false;
+          this.userToDelete = null;
+          alert('Failed to delete user. Please try again.');
         }
       });
     }
   }
 
-  openCreateDialog(): void {
-    console.log('Open create user dialog');
+  onDeleteCancelled(): void {
+    this.isDeleteDialogOpen = false;
+    this.userToDelete = null;
   }
 }

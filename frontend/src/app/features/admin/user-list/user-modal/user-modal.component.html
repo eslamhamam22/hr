@@ -1,0 +1,119 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onCancel()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>{{ title }}</h2>
+            <button class="btn-close" (click)="onCancel()" aria-label="Close">×</button>
+        </div>
+
+        <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+            <div class="modal-body">
+                <div class="alert alert-error" *ngIf="errorMessage">
+                    {{ errorMessage }}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="username">Username <span class="required">*</span></label>
+                        <input type="text" id="username" formControlName="username"
+                            [class.invalid]="isFieldInvalid('username')" placeholder="Enter username">
+                        <span class="error-text" *ngIf="isFieldInvalid('username')">
+                            {{ getFieldError('username') }}
+                        </span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fullName">Full Name <span class="required">*</span></label>
+                        <input type="text" id="fullName" formControlName="fullName"
+                            [class.invalid]="isFieldInvalid('fullName')" placeholder="Enter full name">
+                        <span class="error-text" *ngIf="isFieldInvalid('fullName')">
+                            {{ getFieldError('fullName') }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="email">Email <span class="required">*</span></label>
+                        <input type="email" id="email" formControlName="email" [class.invalid]="isFieldInvalid('email')"
+                            placeholder="Enter email address">
+                        <span class="error-text" *ngIf="isFieldInvalid('email')">
+                            {{ getFieldError('email') }}
+                        </span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">Role <span class="required">*</span></label>
+                        <select id="role" formControlName="role" [class.invalid]="isFieldInvalid('role')">
+                            <option [ngValue]="null" disabled>Select a role</option>
+                            <option *ngFor="let role of roleOptions" [ngValue]="role.value">
+                                {{ role.label }}
+                            </option>
+                        </select>
+                        <span class="error-text" *ngIf="isFieldInvalid('role')">
+                            {{ getFieldError('role') }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="departmentId">Department</label>
+                        <select id="departmentId" formControlName="departmentId">
+                            <option value="">Select a department</option>
+                            <option *ngFor="let dept of departments" [value]="dept.id">
+                                {{ dept.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="managerId">Manager</label>
+                        <select id="managerId" formControlName="managerId">
+                            <option value="">Select a manager</option>
+                            <option *ngFor="let manager of managers" [value]="manager.id">
+                                {{ manager.fullName }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">
+                            Password
+                            <span class="required" *ngIf="mode === 'create'">*</span>
+                            <span class="hint" *ngIf="mode === 'edit'">(Leave blank to keep current)</span>
+                        </label>
+                        <input type="password" id="password" formControlName="password"
+                            [class.invalid]="isFieldInvalid('password')" placeholder="Enter password">
+                        <span class="error-text" *ngIf="isFieldInvalid('password')">
+                            {{ getFieldError('password') }}
+                        </span>
+                    </div>
+
+                    <div class="form-group" *ngIf="mode === 'edit'">
+                        <label>Status</label>
+                        <div class="toggle-container">
+                            <label class="toggle">
+                                <input type="checkbox" formControlName="isActive">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">
+                                {{ userForm.get('isActive')?.value ? 'Active' : 'Inactive' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isSubmitting">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="isSubmitting">
+                    {{ submitButtonText }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -4,11 +4,13 @@ import { Router } from '@angular/router';
 import { DepartmentService } from '../../../../core/services/department.service';
 import { Department, PaginatedResponse } from '../../../../core/models/department.model';
 import { DataTableComponent, DataTableColumn, PaginationConfig } from '../../../../shared/components/data-table/data-table.component';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DepartmentModalComponent } from './department-modal/department-modal.component';
 
 @Component({
     selector: 'app-department-list',
     standalone: true,
-    imports: [CommonModule, DataTableComponent],
+    imports: [CommonModule, DataTableComponent, ConfirmDialogComponent, DepartmentModalComponent],
     templateUrl: './department-list.component.html',
     styleUrls: ['./department-list.component.scss']
 })
@@ -30,6 +32,15 @@ export class DepartmentListComponent implements OnInit {
         totalItems: 0,
         pageSizeOptions: [10, 25, 50, 100]
     };
+
+    // Modal state
+    isModalOpen = false;
+    modalMode: 'create' | 'edit' = 'create';
+    selectedDepartment: Department | null = null;
+
+    // Delete confirmation dialog state
+    isDeleteDialogOpen = false;
+    departmentToDelete: Department | null = null;
 
     constructor(
         private departmentService: DepartmentService,
@@ -79,29 +90,59 @@ export class DepartmentListComponent implements OnInit {
         this.router.navigate(['/admin/departments', department.id]);
     }
 
+    // Modal operations
     createNewDepartment(): void {
-        this.router.navigate(['/admin/departments/new']);
+        this.modalMode = 'create';
+        this.selectedDepartment = null;
+        this.isModalOpen = true;
     }
 
     editDepartment(department: Department, event: Event): void {
         event.stopPropagation();
-        this.router.navigate(['/admin/departments', department.id, 'edit']);
+        this.modalMode = 'edit';
+        this.selectedDepartment = department;
+        this.isModalOpen = true;
     }
 
+    onModalSaved(): void {
+        this.isModalOpen = false;
+        this.selectedDepartment = null;
+        this.loadDepartments();
+    }
+
+    onModalCancelled(): void {
+        this.isModalOpen = false;
+        this.selectedDepartment = null;
+    }
+
+    // Delete operations
     deleteDepartment(department: Department, event: Event): void {
         event.stopPropagation();
+        this.departmentToDelete = department;
+        this.isDeleteDialogOpen = true;
+    }
 
-        if (confirm(`Are you sure you want to delete department "${department.name}"?`)) {
-            this.departmentService.deleteDepartment(department.id).subscribe({
+    onDeleteConfirmed(): void {
+        if (this.departmentToDelete) {
+            this.departmentService.deleteDepartment(this.departmentToDelete.id).subscribe({
                 next: () => {
+                    this.isDeleteDialogOpen = false;
+                    this.departmentToDelete = null;
                     this.loadDepartments();
                 },
                 error: (error) => {
                     console.error('Error deleting department:', error);
+                    this.isDeleteDialogOpen = false;
+                    this.departmentToDelete = null;
                     alert('Failed to delete department. Please try again.');
                 }
             });
         }
+    }
+
+    onDeleteCancelled(): void {
+        this.isDeleteDialogOpen = false;
+        this.departmentToDelete = null;
     }
 
     getStatusBadge(isActive: boolean): string {

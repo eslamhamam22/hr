@@ -86,7 +86,8 @@ builder.Services.AddScoped<HrSystem.Application.Services.Requests.ILeaveRequestS
 builder.Services.AddScoped<HrSystem.Application.Services.Attendance.IAttendanceService, HrSystem.Application.Services.Attendance.AttendanceService>();
 builder.Services.AddScoped<HrSystem.Application.Services.ApprovalLogs.IApprovalLogService, HrSystem.Application.Services.ApprovalLogs.ApprovalLogService>();
 builder.Services.AddScoped<HrSystem.Application.Services.Users.IUserService, HrSystem.Application.Services.Users.UserService>();
-
+builder.Services.AddScoped<HrSystem.Application.Services.Dashboard.IDashboardService, HrSystem.Application.Services.Dashboard.DashboardService>();
+builder.Services.AddScoped<HrSystem.Application.Services.Reports.IReportService, HrSystem.Application.Services.Reports.ReportService>();
 
 var app = builder.Build();
 

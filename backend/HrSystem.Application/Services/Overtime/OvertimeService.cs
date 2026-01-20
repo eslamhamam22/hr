@@ -30,31 +30,24 @@ public class OvertimeService : IOvertimeService
         CancellationToken cancellationToken = default)
     {
         var query = _overtimeRepository.GetQueryable();
-            //.Include(o => o.User);
 
-        // Apply user filter
         if (userId.HasValue)
         {
             query = query.Where(o => o.UserId == userId.Value);
         }
 
-        // Apply status filter
         if (status.HasValue)
         {
             query = query.Where(o => o.Status == status.Value);
         }
 
-        // Apply search filter
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(o => //o.User.FullName.Contains(search) || 
-                                    o.Reason.Contains(search));
+            query = query.Where(o => o.Reason.Contains(search));
         }
 
-        // Get total count
         var totalCount = await query.CountAsync(cancellationToken);
 
-        // Apply pagination
         var items = await query
             .OrderByDescending(o => o.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -63,7 +56,6 @@ public class OvertimeService : IOvertimeService
             {
                 Id = o.Id,
                 UserId = o.UserId,
-                //UserName = o.User.FullName,
                 StartDateTime = o.StartDateTime,
                 EndDateTime = o.EndDateTime,
                 HoursWorked = o.HoursWorked,
@@ -86,38 +78,26 @@ public class OvertimeService : IOvertimeService
     public async Task<OvertimeRequestDto?> GetOvertimeRequestByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var overtime = await _overtimeRepository.GetQueryable()
-            //.Include(o => o.User)
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
         if (overtime == null)
             return null;
 
-        return new OvertimeRequestDto
-        {
-            Id = overtime.Id,
-            UserId = overtime.UserId,
-            //UserName = overtime.User?.FullName,
-            StartDateTime = overtime.StartDateTime,
-            EndDateTime = overtime.EndDateTime,
-            HoursWorked = overtime.HoursWorked,
-            Reason = overtime.Reason,
-            Status = overtime.Status,
-            ManagerId = overtime.ManagerId,
-            ApprovedByHRId = overtime.ApprovedByHRId,
-            SubmittedAt = overtime.SubmittedAt,
-            ApprovedAt = overtime.ApprovedAt,
-            RejectionReason = overtime.RejectionReason,
-            IsOverridden = overtime.IsOverridden,
-            CreatedAt = overtime.CreatedAt,
-            UpdatedAt = overtime.UpdatedAt
-        };
+        return MapToDto(overtime);
     }
 
+    /// <summary>
+    /// Create overtime request with workflow logic
+    /// </summary>
     public async Task<OvertimeRequestDto> CreateOvertimeRequestAsync(
         Guid userId,
         CreateOvertimeRequestDto dto,
         CancellationToken cancellationToken = default)
     {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user == null)
+            throw new InvalidOperationException("User not found");
+
         var overtime = new OvertimeRequest
         {
             UserId = userId,
@@ -132,22 +112,14 @@ public class OvertimeService : IOvertimeService
         await _overtimeRepository.AddAsync(overtime, cancellationToken);
         await _overtimeRepository.SaveChangesAsync(cancellationToken);
 
-        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-
-        return new OvertimeRequestDto
-        {
-            Id = overtime.Id,
-            UserId = overtime.UserId,
-            UserName = user?.FullName,
-            StartDateTime = overtime.StartDateTime,
-            EndDateTime = overtime.EndDateTime,
-            HoursWorked = overtime.HoursWorked,
-            Reason = overtime.Reason,
-            Status = overtime.Status,
-            CreatedAt = overtime.CreatedAt
-        };
+        var result = MapToDto(overtime);
+        result.UserName = user.FullName;
+        return result;
     }
 
+    /// <summary>
+    /// Submit a draft request - workflow depends on user role
+    /// </summary>
     public async Task<bool> SubmitOvertimeRequestAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var overtime = await _overtimeRepository.GetByIdAsync(id, cancellationToken);
@@ -155,7 +127,19 @@ public class OvertimeService : IOvertimeService
         if (overtime == null || overtime.Status != RequestStatus.Draft)
             return false;
 
-        overtime.Status = RequestStatus.Submitted;
+        var user = await _userRepository.GetByIdAsync(overtime.UserId, cancellationToken);
+        if (user == null) return false;
+
+        // If user is Manager/HR/Admin, skip manager approval
+        if (user.Role == RoleType.Manager || user.Role == RoleType.HR || user.Role == RoleType.Admin)
+        {
+            overtime.Status = RequestStatus.PendingHR;
+        }
+        else
+        {
+            overtime.Status = RequestStatus.Submitted;
+        }
+
         overtime.SubmittedAt = DateTime.UtcNow;
         overtime.UpdatedAt = DateTime.UtcNow;
 
@@ -177,16 +161,89 @@ public class OvertimeService : IOvertimeService
 
         return true;
     }
+
+    /// <summary>
+    /// Approve overtime request with workflow:
+    /// - Manager approves: Submitted -> PendingHR
+    /// - HR approves: PendingHR -> Approved (or can approve from Submitted directly)
+    /// </summary>
     public async Task<bool> ApproveOvertimeRequestAsync(Guid id, Guid approverId, CancellationToken cancellationToken = default)
     {
         var overtime = await _overtimeRepository.GetByIdAsync(id, cancellationToken);
+        if (overtime == null) return false;
 
-        if (overtime == null || overtime.Status != RequestStatus.Submitted)
+        var approver = await _userRepository.GetByIdAsync(approverId, cancellationToken);
+        if (approver == null) return false;
+
+        bool isHROrAdmin = approver.Role == RoleType.HR || approver.Role == RoleType.Admin;
+        bool isManager = approver.Role == RoleType.Manager;
+
+        // Manager approval (from Submitted status)
+        if (overtime.Status == RequestStatus.Submitted && (isManager || isHROrAdmin))
+        {
+            overtime.ManagerId = approverId;
+
+            if (isHROrAdmin)
+            {
+                // HR can do both approvals at once
+                overtime.Status = RequestStatus.Approved;
+                overtime.ApprovedByHRId = approverId;
+                overtime.ApprovedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                // Manager approves, now needs HR
+                overtime.Status = RequestStatus.PendingHR;
+            }
+
+            overtime.UpdatedAt = DateTime.UtcNow;
+            _overtimeRepository.Update(overtime);
+            await _overtimeRepository.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        // HR final approval (from PendingHR status)
+        if (overtime.Status == RequestStatus.PendingHR && isHROrAdmin)
+        {
+            overtime.Status = RequestStatus.Approved;
+            overtime.ApprovedByHRId = approverId;
+            overtime.ApprovedAt = DateTime.UtcNow;
+            overtime.UpdatedAt = DateTime.UtcNow;
+
+            _overtimeRepository.Update(overtime);
+            await _overtimeRepository.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Reject overtime request - can be done by Manager (from Submitted) or HR (from any pending status)
+    /// </summary>
+    public async Task<bool> RejectOvertimeRequestAsync(Guid id, Guid approverId, string reason, CancellationToken cancellationToken = default)
+    {
+        var overtime = await _overtimeRepository.GetByIdAsync(id, cancellationToken);
+        if (overtime == null) return false;
+
+        var approver = await _userRepository.GetByIdAsync(approverId, cancellationToken);
+        if (approver == null) return false;
+
+        bool isHROrAdmin = approver.Role == RoleType.HR || approver.Role == RoleType.Admin;
+        bool isManager = approver.Role == RoleType.Manager;
+
+        // Check if approver can reject this request
+        bool canReject = false;
+        if (overtime.Status == RequestStatus.Submitted && (isManager || isHROrAdmin))
+            canReject = true;
+        if (overtime.Status == RequestStatus.PendingHR && isHROrAdmin)
+            canReject = true;
+
+        if (!canReject)
             return false;
 
-        overtime.Status = RequestStatus.Approved;
-        overtime.ApprovedByHRId = approverId; // Assuming HR is the approver for Overtime
-        overtime.ApprovedAt = DateTime.UtcNow;
+        overtime.Status = RequestStatus.Rejected;
+        overtime.RejectionReason = reason;
         overtime.UpdatedAt = DateTime.UtcNow;
 
         _overtimeRepository.Update(overtime);
@@ -195,22 +252,56 @@ public class OvertimeService : IOvertimeService
         return true;
     }
 
-    public async Task<bool> RejectOvertimeRequestAsync(Guid id, Guid approverId, string reason, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Get pending requests for a manager to approve
+    /// </summary>
+    public async Task<IEnumerable<OvertimeRequestDto>> GetPendingForManagerAsync(Guid managerId, CancellationToken cancellationToken = default)
     {
-        var overtime = await _overtimeRepository.GetByIdAsync(id, cancellationToken);
+        var subordinateIds = await _userRepository.GetQueryable()
+            .Where(u => u.ManagerId == managerId)
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
 
-        if (overtime == null || overtime.Status != RequestStatus.Submitted)
-            return false;
+        var requests = await _overtimeRepository.GetQueryable()
+            .Where(r => subordinateIds.Contains(r.UserId) && r.Status == RequestStatus.Submitted)
+            .OrderByDescending(r => r.SubmittedAt)
+            .ToListAsync(cancellationToken);
 
-        overtime.Status = RequestStatus.Rejected;
-        overtime.ApprovedByHRId = approverId; // We record who rejected it
-        overtime.RejectionReason = reason;
-        overtime.ApprovedAt = DateTime.UtcNow; // Or maybe RejectedAt if exists, but reusing ApprovedAt as 'DecisionAt' is common
-        overtime.UpdatedAt = DateTime.UtcNow;
+        return requests.Select(MapToDto);
+    }
 
-        _overtimeRepository.Update(overtime);
-        await _overtimeRepository.SaveChangesAsync(cancellationToken);
+    /// <summary>
+    /// Get pending requests for HR to approve
+    /// </summary>
+    public async Task<IEnumerable<OvertimeRequestDto>> GetPendingForHRAsync(CancellationToken cancellationToken = default)
+    {
+        var requests = await _overtimeRepository.GetQueryable()
+            .Where(r => r.Status == RequestStatus.PendingHR)
+            .OrderByDescending(r => r.SubmittedAt)
+            .ToListAsync(cancellationToken);
 
-        return true;
+        return requests.Select(MapToDto);
+    }
+
+    private OvertimeRequestDto MapToDto(OvertimeRequest o)
+    {
+        return new OvertimeRequestDto
+        {
+            Id = o.Id,
+            UserId = o.UserId,
+            StartDateTime = o.StartDateTime,
+            EndDateTime = o.EndDateTime,
+            HoursWorked = o.HoursWorked,
+            Reason = o.Reason,
+            Status = o.Status,
+            ManagerId = o.ManagerId,
+            ApprovedByHRId = o.ApprovedByHRId,
+            SubmittedAt = o.SubmittedAt,
+            ApprovedAt = o.ApprovedAt,
+            RejectionReason = o.RejectionReason,
+            IsOverridden = o.IsOverridden,
+            CreatedAt = o.CreatedAt,
+            UpdatedAt = o.UpdatedAt
+        };
     }
 }

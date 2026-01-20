@@ -109,11 +109,11 @@ export class AuthService {
 
   hasRole(role: string): boolean {
     const user = this.user();
-    return user?.role === role;
+    return user?.role.toString() === role;
   }
 
   hasAnyRole(roles: string[]): boolean {
     const user = this.user();
-    return user ? roles.includes(user.role) : false;
+    return user ? roles.includes(user.role.toString()) : false;
   }
 }

@@ -37,7 +37,7 @@ export class SidebarComponent {
                     icon: '📋',
                     route: '/requests/list'
                 },
-                {
+                /*{
                     label: 'New Leave Request',
                     icon: '🏖️',
                     route: '/requests/new'
@@ -46,7 +46,7 @@ export class SidebarComponent {
                     label: 'New Overtime',
                     icon: '⏰',
                     route: '/requests/overtime/new'
-                },
+                },*/
                 {
                     label: 'Overtime Requests',
                     icon: '⏱️',
