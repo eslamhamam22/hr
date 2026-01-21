@@ -1,6 +1,8 @@
+using HrSystem.Application.Common.Interfaces;
 using HrSystem.Application.DTOs.Requests;
 using HrSystem.Application.Services.Overtime;
 using HrSystem.Application.Services.Requests;
+using HrSystem.Application.Services.Users;
 using HrSystem.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,13 +20,19 @@ public class RequestsController : ControllerBase
 {
     private readonly ILeaveRequestService _leaveRequestService;
     private readonly IOvertimeService _overtimeService;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IUserService _userService;
 
     public RequestsController(
         ILeaveRequestService leaveRequestService,
-        IOvertimeService overtimeService)
+        IOvertimeService overtimeService,
+        ICurrentUserService currentUserService,
+        IUserService userService)
     {
         _leaveRequestService = leaveRequestService;
         _overtimeService = overtimeService;
+        _currentUserService = currentUserService;
+        _userService = userService;
     }
 
     /// <summary>
@@ -74,20 +82,50 @@ public class RequestsController : ControllerBase
     }
 
     /// <summary>
-    /// Get pending approvals
+    /// Get pending approvals based on user role:
+    /// - Manager: See requests from their employees (Submitted status)
+    /// - HR/Admin: See all pending requests (PendingHR and Submitted status)
+    /// - Employee: No pending approvals (empty list)
     /// </summary>
     [HttpGet("pending-approvals")]
     public async Task<IActionResult> GetPendingApprovals(CancellationToken cancellationToken)
     {
-        // Get Pending Leave Requests
-        var leaveResult = await _leaveRequestService.GetLeaveRequestsAsync(1, 1000, RequestStatus.Submitted, null, cancellationToken);
-        
-        // Get Pending Overtime Requests
-        var overtimeResult = await _overtimeService.GetOvertimeRequestsAsync(1, 1000, RequestStatus.Submitted, null, null, cancellationToken);
+        var currentUserId = _currentUserService.UserId;
+        if (currentUserId == Guid.Empty)
+            return Unauthorized();
+
+        // Get the current user to determine their role
+        var currentUser = await _userService.GetUserByIdAsync(currentUserId, cancellationToken);
+        if (currentUser == null)
+            return Unauthorized();
 
         var pending = new List<RequestSummaryDto>();
 
-        pending.AddRange(leaveResult.Items.Select(l => new RequestSummaryDto
+        IEnumerable<Application.DTOs.Requests.LeaveRequestDto> leaveRequests;
+        IEnumerable<Application.DTOs.Overtime.OvertimeRequestDto> overtimeRequests;
+
+        switch (currentUser.Role)
+        {
+            case RoleType.HR:
+            case RoleType.Admin:
+                // HR and Admin can see all pending requests (both PendingHR and Submitted)
+                leaveRequests = await _leaveRequestService.GetPendingForHRAsync(cancellationToken);
+                overtimeRequests = await _overtimeService.GetPendingForHRAsync(cancellationToken);
+                break;
+
+            case RoleType.Manager:
+                // Managers can only see requests from their subordinates (Submitted status)
+                leaveRequests = await _leaveRequestService.GetPendingForManagerAsync(currentUserId, cancellationToken);
+                overtimeRequests = await _overtimeService.GetPendingForManagerAsync(currentUserId, cancellationToken);
+                break;
+
+            case RoleType.Employee:
+            default:
+                // Regular employees cannot approve requests
+                return Ok(pending);
+        }
+
+        pending.AddRange(leaveRequests.Select(l => new RequestSummaryDto
         {
             Id = l.Id,
             EmployeeName = l.UserName ?? "Unknown",
@@ -100,7 +138,7 @@ public class RequestsController : ControllerBase
             ApprovedAt = l.ApprovedAt
         }));
 
-        pending.AddRange(overtimeResult.Items.Select(o => new RequestSummaryDto
+        pending.AddRange(overtimeRequests.Select(o => new RequestSummaryDto
         {
             Id = o.Id,
             EmployeeName = o.UserName ?? "Unknown",
@@ -137,7 +175,7 @@ public class RequestsController : ControllerBase
             request.Reason,
             cancellationToken);
 
-        return result ? Ok("Leave request created successfully") : BadRequest("Failed to create leave request");
+        return result != Guid.Empty ? Ok(new { message = "Leave request created successfully", id = result }) : BadRequest(new { message = "Failed to create leave request" });
     }
 
     /// <summary>
@@ -148,13 +186,13 @@ public class RequestsController : ControllerBase
     {
         // Try Leave first
         var leaveResult = await _leaveRequestService.SubmitLeaveRequestAsync(id, cancellationToken);
-        if (leaveResult) return Ok("Leave request submitted");
+        if (leaveResult) return Ok(new { message = "Leave request submitted" });
 
         // Try Overtime
         var overtimeResult = await _overtimeService.SubmitOvertimeRequestAsync(id, cancellationToken);
-        if (overtimeResult) return Ok("Overtime request submitted");
+        if (overtimeResult) return Ok(new { message = "Overtime request submitted" });
 
-        return BadRequest("Failed to submit request. It may not exist or is not in Draft status.");
+        return BadRequest(new { message = "Failed to submit request. It may not exist or is not in Draft status." });
     }
 
     /// <summary>
@@ -174,7 +212,7 @@ public class RequestsController : ControllerBase
         var overtimeResult = await _overtimeService.ApproveOvertimeRequestAsync(id, approverId, cancellationToken);
         if (overtimeResult) return Ok(new { message = "Overtime request approved" });
 
-        return BadRequest("Failed to approve request. It may not exist or is not in Submitted status.");
+        return BadRequest(new { message = "Failed to approve request. It may not exist or is not in Submitted status." });
     }
 
     /// <summary>
@@ -194,12 +232,16 @@ public class RequestsController : ControllerBase
         var overtimeResult = await _overtimeService.RejectOvertimeRequestAsync(id, approverId, model.Reason, cancellationToken);
         if (overtimeResult) return Ok(new { message = "Overtime request rejected" });
 
-        return BadRequest("Failed to reject request. It may not exist or is not in Submitted status.");
+        return BadRequest(new { message = "Failed to reject request. It may not exist or is not in Submitted status." });
     }
 
     private Guid GetCurrentUserId()
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        // Try multiple claim types for user ID
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst("nameid")?.Value;
+            
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             return Guid.Empty;

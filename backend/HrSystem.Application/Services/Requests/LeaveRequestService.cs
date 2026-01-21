@@ -110,7 +110,7 @@ public class LeaveRequestService : ILeaveRequestService
     /// <summary>
     /// Legacy method for backward compatibility
     /// </summary>
-    public async Task<bool> CreateLeaveRequestAsync(
+    public async Task<Guid?> CreateLeaveRequestAsync(
         Guid userId, 
         int leaveTypeId, 
         DateTime startDate, 
@@ -119,7 +119,7 @@ public class LeaveRequestService : ILeaveRequestService
         CancellationToken cancellationToken = default)
     {
         var result = await CreateLeaveRequestAsync(userId, userId, leaveTypeId, startDate, endDate, reason, false, cancellationToken);
-        return result != null;
+        return result?.Id;
     }
 
     /// <summary>
@@ -265,29 +265,39 @@ public class LeaveRequestService : ILeaveRequestService
 
          var totalCount = await query.CountAsync(cancellationToken);
 
-         var items = await query
+         var requests = await query
              .OrderByDescending(r => r.CreatedAt)
              .Skip((page - 1) * pageSize)
              .Take(pageSize)
-             .Select(r => new LeaveRequestDto
-             {
-                 Id = r.Id,
-                 UserId = r.UserId,
-                 LeaveTypeId = (int)r.LeaveType,
-                 LeaveTypeName = r.LeaveType.ToString(),
-                 StartDate = r.StartDate,
-                 EndDate = r.EndDate,
-                 Reason = r.Reason,
-                 Status = r.Status,
-                 ManagerId = r.ManagerId,
-                 ApprovedByHRId = r.ApprovedByHRId,
-                 SubmittedAt = r.SubmittedAt,
-                 ApprovedAt = r.ApprovedAt,
-                 RejectionReason = r.RejectionReason,
-                 CreatedAt = r.CreatedAt,
-                 UpdatedAt = r.UpdatedAt
-             })
              .ToListAsync(cancellationToken);
+
+         // Get user names for all requests
+         var userIds = requests.Select(r => r.UserId).Distinct().ToList();
+         var users = await _userRepository.GetQueryable()
+             .Where(u => userIds.Contains(u.Id))
+             .Select(u => new { u.Id, u.FullName })
+             .ToListAsync(cancellationToken);
+         var userNames = users.ToDictionary(u => u.Id, u => u.FullName);
+
+         var items = requests.Select(r => new LeaveRequestDto
+         {
+             Id = r.Id,
+             UserId = r.UserId,
+             UserName = userNames.TryGetValue(r.UserId, out var name) ? name : null,
+             LeaveTypeId = (int)r.LeaveType,
+             LeaveTypeName = r.LeaveType.ToString(),
+             StartDate = r.StartDate,
+             EndDate = r.EndDate,
+             Reason = r.Reason,
+             Status = r.Status,
+             ManagerId = r.ManagerId,
+             ApprovedByHRId = r.ApprovedByHRId,
+             SubmittedAt = r.SubmittedAt,
+             ApprovedAt = r.ApprovedAt,
+             RejectionReason = r.RejectionReason,
+             CreatedAt = r.CreatedAt,
+             UpdatedAt = r.UpdatedAt
+         }).ToList();
 
          return new PaginatedResult<LeaveRequestDto>(items, totalCount, page, pageSize);
     }
@@ -297,31 +307,52 @@ public class LeaveRequestService : ILeaveRequestService
     /// </summary>
     public async Task<IEnumerable<LeaveRequestDto>> GetPendingForManagerAsync(Guid managerId, CancellationToken cancellationToken = default)
     {
-        // Get all users under this manager
-        var subordinateIds = await _userRepository.GetQueryable()
+        // Get all users under this manager with their names
+        var subordinates = await _userRepository.GetQueryable()
             .Where(u => u.ManagerId == managerId)
-            .Select(u => u.Id)
+            .Select(u => new { u.Id, u.FullName })
             .ToListAsync(cancellationToken);
+
+        var subordinateIds = subordinates.Select(s => s.Id).ToList();
+        var userNames = subordinates.ToDictionary(s => s.Id, s => s.FullName);
 
         var requests = await _leaveRequestRepository.GetQueryable()
             .Where(r => subordinateIds.Contains(r.UserId) && r.Status == RequestStatus.Submitted)
             .OrderByDescending(r => r.SubmittedAt)
             .ToListAsync(cancellationToken);
 
-        return requests.Select(MapToDto);
+        return requests.Select(r =>
+        {
+            var dto = MapToDto(r);
+            dto.UserName = userNames.TryGetValue(r.UserId, out var name) ? name : null;
+            return dto;
+        });
     }
 
     /// <summary>
-    /// Get pending requests for HR to approve
+    /// Get pending requests for HR to approve (includes both PendingHR and Submitted - HR can approve both)
     /// </summary>
     public async Task<IEnumerable<LeaveRequestDto>> GetPendingForHRAsync(CancellationToken cancellationToken = default)
     {
         var requests = await _leaveRequestRepository.GetQueryable()
-            .Where(r => r.Status == RequestStatus.PendingHR)
+            .Where(r => r.Status == RequestStatus.PendingHR || r.Status == RequestStatus.Submitted)
             .OrderByDescending(r => r.SubmittedAt)
             .ToListAsync(cancellationToken);
 
-        return requests.Select(MapToDto);
+        // Get user names for all requests
+        var userIds = requests.Select(r => r.UserId).Distinct().ToList();
+        var users = await _userRepository.GetQueryable()
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.FullName })
+            .ToListAsync(cancellationToken);
+        var userNames = users.ToDictionary(u => u.Id, u => u.FullName);
+
+        return requests.Select(r =>
+        {
+            var dto = MapToDto(r);
+            dto.UserName = userNames.TryGetValue(r.UserId, out var name) ? name : null;
+            return dto;
+        });
     }
 
     public async Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -329,7 +360,13 @@ public class LeaveRequestService : ILeaveRequestService
         var r = await _leaveRequestRepository.GetByIdAsync(id, cancellationToken);
         if (r == null) return null;
 
-        return MapToDto(r);
+        var dto = MapToDto(r);
+        
+        // Get user name
+        var user = await _userRepository.GetByIdAsync(r.UserId, cancellationToken);
+        dto.UserName = user?.FullName;
+
+        return dto;
     }
 
     private LeaveRequestDto MapToDto(LeaveRequest r)

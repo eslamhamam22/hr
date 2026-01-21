@@ -20,7 +20,7 @@
         <p class="subtitle">{{ dashboard()?.role }} • {{ dashboard()?.departmentName }}</p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-primary" (click)="navigateTo('requests')">
+        <button class="btn btn-primary" (click)="navigateTo('requests/list')">
           ➕ New Leave Request
         </button>
       </div>
@@ -120,7 +120,7 @@
     <div class="section">
       <div class="section-header">
         <h2>Recent Activity</h2>
-        <button class="btn btn-link" (click)="navigateTo('requests')">View All →</button>
+        <button class="btn btn-link" (click)="navigateTo('requests/list')">View All →</button>
       </div>
 
       <div class="recent-requests-list" *ngIf="dashboard()?.recentRequests?.length; else noRequests">
@@ -148,7 +148,7 @@
         <div class="empty-state">
           <span class="empty-icon">📭</span>
           <p>No recent requests</p>
-          <button class="btn btn-primary" (click)="navigateTo('requests')">Create Your First Request</button>
+          <button class="btn btn-primary" (click)="navigateTo('requests/list')">Create Your First Request</button>
         </div>
       </ng-template>
     </div>

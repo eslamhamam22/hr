@@ -48,29 +48,39 @@ public class OvertimeService : IOvertimeService
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = await query
+        var requests = await query
             .OrderByDescending(o => o.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(o => new OvertimeRequestDto
-            {
-                Id = o.Id,
-                UserId = o.UserId,
-                StartDateTime = o.StartDateTime,
-                EndDateTime = o.EndDateTime,
-                HoursWorked = o.HoursWorked,
-                Reason = o.Reason,
-                Status = o.Status,
-                ManagerId = o.ManagerId,
-                ApprovedByHRId = o.ApprovedByHRId,
-                SubmittedAt = o.SubmittedAt,
-                ApprovedAt = o.ApprovedAt,
-                RejectionReason = o.RejectionReason,
-                IsOverridden = o.IsOverridden,
-                CreatedAt = o.CreatedAt,
-                UpdatedAt = o.UpdatedAt
-            })
             .ToListAsync(cancellationToken);
+
+        // Get user names for all requests
+        var userIds = requests.Select(r => r.UserId).Distinct().ToList();
+        var users = await _userRepository.GetQueryable()
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.FullName })
+            .ToListAsync(cancellationToken);
+        var userNames = users.ToDictionary(u => u.Id, u => u.FullName);
+
+        var items = requests.Select(o => new OvertimeRequestDto
+        {
+            Id = o.Id,
+            UserId = o.UserId,
+            UserName = userNames.TryGetValue(o.UserId, out var name) ? name : null,
+            StartDateTime = o.StartDateTime,
+            EndDateTime = o.EndDateTime,
+            HoursWorked = o.HoursWorked,
+            Reason = o.Reason,
+            Status = o.Status,
+            ManagerId = o.ManagerId,
+            ApprovedByHRId = o.ApprovedByHRId,
+            SubmittedAt = o.SubmittedAt,
+            ApprovedAt = o.ApprovedAt,
+            RejectionReason = o.RejectionReason,
+            IsOverridden = o.IsOverridden,
+            CreatedAt = o.CreatedAt,
+            UpdatedAt = o.UpdatedAt
+        }).ToList();
 
         return new PaginatedResult<OvertimeRequestDto>(items, totalCount, page, pageSize);
     }
@@ -83,7 +93,13 @@ public class OvertimeService : IOvertimeService
         if (overtime == null)
             return null;
 
-        return MapToDto(overtime);
+        var dto = MapToDto(overtime);
+        
+        // Get user name
+        var user = await _userRepository.GetByIdAsync(overtime.UserId, cancellationToken);
+        dto.UserName = user?.FullName;
+
+        return dto;
     }
 
     /// <summary>
@@ -257,30 +273,52 @@ public class OvertimeService : IOvertimeService
     /// </summary>
     public async Task<IEnumerable<OvertimeRequestDto>> GetPendingForManagerAsync(Guid managerId, CancellationToken cancellationToken = default)
     {
-        var subordinateIds = await _userRepository.GetQueryable()
+        // Get all users under this manager with their names
+        var subordinates = await _userRepository.GetQueryable()
             .Where(u => u.ManagerId == managerId)
-            .Select(u => u.Id)
+            .Select(u => new { u.Id, u.FullName })
             .ToListAsync(cancellationToken);
+
+        var subordinateIds = subordinates.Select(s => s.Id).ToList();
+        var userNames = subordinates.ToDictionary(s => s.Id, s => s.FullName);
 
         var requests = await _overtimeRepository.GetQueryable()
             .Where(r => subordinateIds.Contains(r.UserId) && r.Status == RequestStatus.Submitted)
             .OrderByDescending(r => r.SubmittedAt)
             .ToListAsync(cancellationToken);
 
-        return requests.Select(MapToDto);
+        return requests.Select(r =>
+        {
+            var dto = MapToDto(r);
+            dto.UserName = userNames.TryGetValue(r.UserId, out var name) ? name : null;
+            return dto;
+        });
     }
 
     /// <summary>
-    /// Get pending requests for HR to approve
+    /// Get pending requests for HR to approve (includes both PendingHR and Submitted - HR can approve both)
     /// </summary>
     public async Task<IEnumerable<OvertimeRequestDto>> GetPendingForHRAsync(CancellationToken cancellationToken = default)
     {
         var requests = await _overtimeRepository.GetQueryable()
-            .Where(r => r.Status == RequestStatus.PendingHR)
+            .Where(r => r.Status == RequestStatus.PendingHR || r.Status == RequestStatus.Submitted)
             .OrderByDescending(r => r.SubmittedAt)
             .ToListAsync(cancellationToken);
 
-        return requests.Select(MapToDto);
+        // Get user names for all requests
+        var userIds = requests.Select(r => r.UserId).Distinct().ToList();
+        var users = await _userRepository.GetQueryable()
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.FullName })
+            .ToListAsync(cancellationToken);
+        var userNames = users.ToDictionary(u => u.Id, u => u.FullName);
+
+        return requests.Select(r =>
+        {
+            var dto = MapToDto(r);
+            dto.UserName = userNames.TryGetValue(r.UserId, out var name) ? name : null;
+            return dto;
+        });
     }
 
     private OvertimeRequestDto MapToDto(OvertimeRequest o)

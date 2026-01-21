@@ -9,7 +9,7 @@ namespace HrSystem.Application.Services.Requests;
 /// </summary>
 public interface ILeaveRequestService
 {
-    Task<bool> CreateLeaveRequestAsync(
+    Task<Guid?> CreateLeaveRequestAsync(
         Guid userId, 
         int leaveTypeId, 
         DateTime startDate, 
@@ -31,4 +31,14 @@ public interface ILeaveRequestService
         CancellationToken cancellationToken = default);
 
     Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get pending leave requests for a manager to approve (their employees' requests with Submitted status)
+    /// </summary>
+    Task<IEnumerable<LeaveRequestDto>> GetPendingForManagerAsync(Guid managerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get pending leave requests for HR to approve (all requests with PendingHR or Submitted status)
+    /// </summary>
+    Task<IEnumerable<LeaveRequestDto>> GetPendingForHRAsync(CancellationToken cancellationToken = default);
 }

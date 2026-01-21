@@ -24,4 +24,14 @@ public interface IOvertimeService
     Task<bool> ApproveOvertimeRequestAsync(Guid id, Guid approverId, CancellationToken cancellationToken = default);
 
     Task<bool> RejectOvertimeRequestAsync(Guid id, Guid approverId, string reason, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get pending overtime requests for a manager to approve (their employees' requests with Submitted status)
+    /// </summary>
+    Task<IEnumerable<OvertimeRequestDto>> GetPendingForManagerAsync(Guid managerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get pending overtime requests for HR to approve (all requests with PendingHR or Submitted status)
+    /// </summary>
+    Task<IEnumerable<OvertimeRequestDto>> GetPendingForHRAsync(CancellationToken cancellationToken = default);
 }

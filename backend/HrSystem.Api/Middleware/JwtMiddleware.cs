@@ -48,9 +48,19 @@ public class JwtMiddleware
             }, out SecurityToken validatedToken);
 
             var jwtToken = (JwtSecurityToken)validatedToken;
-            var userId = jwtToken.Claims.First(x => x.Type == ClaimTypes.NameIdentifier).Value;
+            
+            // Look for user ID in multiple possible claim types
+            // JWT standard uses "sub" or "nameid", .NET uses ClaimTypes.NameIdentifier
+            var userId = jwtToken.Claims.FirstOrDefault(x => 
+                x.Type == ClaimTypes.NameIdentifier || 
+                x.Type == "sub" || 
+                x.Type == "nameid" ||
+                x.Type == JwtRegisteredClaimNames.Sub)?.Value;
 
-            context.Items["UserId"] = userId;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                context.Items["UserId"] = userId;
+            }
         }
         catch
         {
