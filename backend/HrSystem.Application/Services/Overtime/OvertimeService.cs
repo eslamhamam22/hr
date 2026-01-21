@@ -31,6 +31,7 @@ public class OvertimeService : IOvertimeService
         RequestStatus? status,
         string? search,
         Guid? userId = null,
+        IEnumerable<Guid>? userIds = null,
         CancellationToken cancellationToken = default)
     {
         var query = _overtimeRepository.GetQueryable();
@@ -38,6 +39,11 @@ public class OvertimeService : IOvertimeService
         if (userId.HasValue)
         {
             query = query.Where(o => o.UserId == userId.Value);
+        }
+
+        if (userIds != null && userIds.Any())
+        {
+            query = query.Where(o => userIds.Contains(o.UserId));
         }
 
         if (status.HasValue)
@@ -59,9 +65,9 @@ public class OvertimeService : IOvertimeService
             .ToListAsync(cancellationToken);
 
         // Get user names for all requests
-        var userIds = requests.Select(r => r.UserId).Distinct().ToList();
+        var userIdsReq = requests.Select(r => r.UserId).Distinct().ToList();
         var users = await _userRepository.GetQueryable()
-            .Where(u => userIds.Contains(u.Id))
+            .Where(u => userIdsReq.Contains(u.Id))
             .Select(u => new { u.Id, u.FullName })
             .ToListAsync(cancellationToken);
         var userNames = users.ToDictionary(u => u.Id, u => u.FullName);
@@ -126,7 +132,8 @@ public class OvertimeService : IOvertimeService
             HoursWorked = dto.HoursWorked,
             Reason = dto.Reason,
             Status = RequestStatus.Draft,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            ManagerId = user.ManagerId
         };
 
         await _overtimeRepository.AddAsync(overtime, cancellationToken);

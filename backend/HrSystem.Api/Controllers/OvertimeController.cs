@@ -31,9 +31,10 @@ public class OvertimeController : ControllerBase
         [FromQuery] int pageSize = 10,
         [FromQuery] RequestStatus? status = null,
         [FromQuery] string? search = null,
+        [FromQuery] Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _overtimeService.GetOvertimeRequestsAsync(page, pageSize, status, search, cancellationToken: cancellationToken);
+        var result = await _overtimeService.GetOvertimeRequestsAsync(page, pageSize, status, search, userId, cancellationToken: cancellationToken);
         return Ok(result);
     }
 

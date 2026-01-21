@@ -11,6 +11,7 @@ public interface IWorkFromHomeService
         int pageSize,
         RequestStatus? status,
         Guid? userId = null,
+        IEnumerable<Guid>? userIds = null,
         CancellationToken cancellationToken = default);
 
     Task<WorkFromHomeRequestDto?> GetWorkFromHomeRequestByIdAsync(Guid id, CancellationToken cancellationToken = default);

@@ -7,6 +7,7 @@ import { PaginatedResponse } from '../../../../core/models/department.model';
 import { DataTableComponent, DataTableColumn, PaginationConfig } from '../../../../shared/components/data-table/data-table.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { OvertimeModalComponent } from './overtime-modal/overtime-modal.component';
+import { AuthService } from '@core/auth/auth.service';
 
 @Component({
     selector: 'app-overtime-list',
@@ -46,7 +47,8 @@ export class OvertimeListComponent implements OnInit {
 
     constructor(
         private overtimeService: OvertimeService,
-        private router: Router
+        private router: Router,
+        private authService: AuthService
     ) { }
 
     ngOnInit(): void {
@@ -55,9 +57,10 @@ export class OvertimeListComponent implements OnInit {
 
     loadOvertimeRequests(): void {
         this.loading = true;
+        const userId = this.authService.user()?.id || '';
 
         this.overtimeService
-            .getOvertimeRequests(this.pagination.currentPage, this.pagination.pageSize, this.statusFilter, this.searchTerm)
+            .getOvertimeRequests(this.pagination.currentPage, this.pagination.pageSize, this.statusFilter, this.searchTerm, userId)
             .subscribe({
                 next: (response: PaginatedResponse<OvertimeRequest>) => {
                     this.overtimeRequests = response.items;

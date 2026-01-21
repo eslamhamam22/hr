@@ -37,7 +37,7 @@ public class WorkFromHomeController : ControllerBase
         [FromQuery] Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _wfhService.GetWorkFromHomeRequestsAsync(page, pageSize, status, userId, cancellationToken);
+        var result = await _wfhService.GetWorkFromHomeRequestsAsync(page, pageSize, status, userId, null, cancellationToken);
         return Ok(result);
     }
 

@@ -46,7 +46,7 @@ public class RequestsController : ControllerBase
     public async Task<IActionResult> GetRequestHistory(Guid userId, CancellationToken cancellationToken)
     {
         // Get Leave Requests (fetch all pages - simplified for history view, ideally use pagination)
-        var leaveResult = await _leaveRequestService.GetLeaveRequestsAsync(1, 1000, null, userId, cancellationToken);
+        var leaveResult = await _leaveRequestService.GetLeaveRequestsAsync(1, 1000, null, userId, null, cancellationToken);
         
         var history = new List<RequestSummaryDto>();
 
@@ -74,7 +74,6 @@ public class RequestsController : ControllerBase
     /// Supports filtering by userId, departmentId, status, and date range
     /// </summary>
     [HttpGet("all")]
-    [Authorize(Roles = "Manager,HR,Admin")]
     public async Task<IActionResult> GetAllRequests(
         [FromQuery] Guid? userId,
         [FromQuery] Guid? departmentId,
@@ -91,14 +90,59 @@ public class RequestsController : ControllerBase
         if (currentUser == null)
             return Unauthorized();
 
+        IEnumerable<Guid>? allowedUserIds = null;
+
+        // Role-based filtering logic
+        if (currentUser.Role == RoleType.Manager)
+        {
+            // Managers can see their own requests and their subordinates' requests
+            var subordinates = await _userService.GetSubordinatesAsync(currentUserId, cancellationToken);
+            var subordinateIds = subordinates.Select(u => u.Id).ToList();
+            subordinateIds.Add(currentUserId); // Add self
+            
+            allowedUserIds = subordinateIds;
+
+            // If a specific user is requested, ensure they are in the allowed list
+            if (userId.HasValue)
+            {
+                if (!allowedUserIds.Contains(userId.Value))
+                {
+                    return Forbid();
+                }
+                // Allowed, rely on userId filter in service which intersects with userIds if we passed both,
+                // but since we verified, we can just pass userId. 
+                // However, to be safe and simple, we can pass allowedUserIds to the service OR handle it here.
+                // Since userId is stricter, we can just pass userId effectively (as we verified it's allowed).
+                // But for consistency let's rely on logic below.
+            }
+        }
+        else if (currentUser.Role == RoleType.Employee)
+        {
+            // Employees can only see their own requests
+            if (userId.HasValue && userId.Value != currentUserId)
+            {
+                return Forbid();
+            }
+            userId = currentUserId; // Force filter to self
+        }
+        else if (currentUser.Role == RoleType.HR || currentUser.Role == RoleType.Admin)
+        {
+            // HR/Admin can see all - no restrictions on allowedUserIds (stays null)
+        }
+        else
+        {
+             // Fallback for unknown roles - restrict to self
+             userId = currentUserId;
+        }
+
         // Get Leave Requests
-        var leaveResult = await _leaveRequestService.GetLeaveRequestsAsync(1, 10000, status, userId, cancellationToken);
+        var leaveResult = await _leaveRequestService.GetLeaveRequestsAsync(1, 10000, status, userId, allowedUserIds, cancellationToken);
         
         // Get Overtime Requests
-        var overtimeResult = await _overtimeService.GetOvertimeRequestsAsync(1, 10000, status, null, userId, cancellationToken);
+        var overtimeResult = await _overtimeService.GetOvertimeRequestsAsync(1, 10000, status, null, userId, allowedUserIds, cancellationToken);
 
         // Get Work From Home Requests
-        var wfhResult = await _workFromHomeService.GetWorkFromHomeRequestsAsync(1, 10000, status, userId, cancellationToken);
+        var wfhResult = await _workFromHomeService.GetWorkFromHomeRequestsAsync(1, 10000, status, userId, allowedUserIds, cancellationToken);
 
         var allRequests = new List<RequestSummaryDto>();
 

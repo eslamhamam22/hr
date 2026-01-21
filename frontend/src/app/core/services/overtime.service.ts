@@ -14,7 +14,7 @@ export class OvertimeService {
 
     constructor(private apiService: ApiService) { }
 
-    getOvertimeRequests(page: number = 1, pageSize: number = 10, status?: string, search: string = ''): Observable<PaginatedResponse<OvertimeRequest>> {
+    getOvertimeRequests(page: number = 1, pageSize: number = 10, status?: string, search: string = '', userId?: string): Observable<PaginatedResponse<OvertimeRequest>> {
         const params: any = {
             page: page,
             pageSize: pageSize
@@ -25,6 +25,9 @@ export class OvertimeService {
         }
         if (search) {
             params.search = search;
+        }
+        if (userId) {
+            params.userId = userId;
         }
 
         return this.apiService.get<PaginatedResponse<OvertimeRequest>>(this.apiUrl, params);

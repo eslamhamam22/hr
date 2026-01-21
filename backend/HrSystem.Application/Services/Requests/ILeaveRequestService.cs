@@ -28,6 +28,7 @@ public interface ILeaveRequestService
         int pageSize,
         RequestStatus? status,
         Guid? userId = null,
+        IEnumerable<Guid>? userIds = null,
         CancellationToken cancellationToken = default);
 
     Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(Guid id, CancellationToken cancellationToken = default);

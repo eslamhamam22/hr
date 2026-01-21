@@ -12,6 +12,7 @@ public interface IOvertimeService
         RequestStatus? status,
         string? search,
         Guid? userId = null,
+        IEnumerable<Guid>? userIds = null,
         CancellationToken cancellationToken = default);
 
     Task<OvertimeRequestDto?> GetOvertimeRequestByIdAsync(Guid id, CancellationToken cancellationToken = default);

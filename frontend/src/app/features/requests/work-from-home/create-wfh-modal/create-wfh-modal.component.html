@@ -1,38 +1,62 @@
 <div class="modal-overlay" *ngIf="isOpen" (click)="onCancel()">
     <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
-            <h2>New Work From Home Request</h2>
-            <button class="close-btn" (click)="onCancel()">&times;</button>
+            <h2>{{ title }}</h2>
+            <button class="btn-close" (click)="onCancel()" aria-label="Close">×</button>
         </div>
 
-        <div class="modal-body">
-            <div class="error-message" *ngIf="errorMessage()">
-                {{ errorMessage() }}
+        <form [formGroup]="wfhForm" (ngSubmit)="onSubmit()">
+            <div class="modal-body">
+                <div class="alert alert-error" *ngIf="errorMessage">
+                    {{ errorMessage }}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fromDate">From Date <span class="required">*</span></label>
+                        <input type="date" id="fromDate" formControlName="fromDate"
+                            [class.invalid]="isFieldInvalid('fromDate')">
+                        <span class="error-text" *ngIf="isFieldInvalid('fromDate')">
+                            {{ getFieldError('fromDate') }}
+                        </span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="toDate">To Date <span class="required">*</span></label>
+                        <input type="date" id="toDate" formControlName="toDate"
+                            [class.invalid]="isFieldInvalid('toDate')">
+                        <span class="error-text" *ngIf="isFieldInvalid('toDate')">
+                            {{ getFieldError('toDate') }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="hours-display" *ngIf="calculatedDays > 0">
+                    <div class="hours-label">Calculated Days</div>
+                    <div class="hours-value">{{ calculatedDays }} days</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="reason">Reason <span class="required">*</span></label>
+                    <textarea id="reason" formControlName="reason" [class.invalid]="isFieldInvalid('reason')"
+                        placeholder="Please provide a reason for your work from home request..." rows="4"></textarea>
+                    <span class="error-text" *ngIf="isFieldInvalid('reason')">
+                        {{ getFieldError('reason') }}
+                    </span>
+                    <span class="char-count">
+                        {{ wfhForm.get('reason')?.value?.length || 0 }} / 500
+                    </span>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="fromDate">From Date</label>
-                <input type="date" id="fromDate" [(ngModel)]="fromDate" class="form-control">
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isSubmitting">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="isSubmitting">
+                    {{ submitButtonText }}
+                </button>
             </div>
-
-            <div class="form-group">
-                <label for="toDate">To Date</label>
-                <input type="date" id="toDate" [(ngModel)]="toDate" class="form-control">
-            </div>
-
-            <div class="form-group">
-                <label for="reason">Reason</label>
-                <textarea id="reason" [(ngModel)]="reason" rows="3" class="form-control"
-                    placeholder="Why are you requesting to work from home?"></textarea>
-            </div>
-        </div>
-
-        <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="onCancel()" [disabled]="isSubmitting()">Cancel</button>
-            <button class="btn btn-primary" (click)="onSave()" [disabled]="isSubmitting()">
-                <span *ngIf="isSubmitting()" class="spinner-sm"></span>
-                {{ isSubmitting() ? 'Saving...' : 'Save Request' }}
-            </button>
-        </div>
+        </form>
     </div>
 </div>

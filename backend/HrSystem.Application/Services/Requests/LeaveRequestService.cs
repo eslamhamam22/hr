@@ -55,7 +55,8 @@ public class LeaveRequestService : ILeaveRequestService
             StartDate = startDate,
             EndDate = endDate,
             Reason = reason,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            ManagerId = requestor.ManagerId
         };
 
         // Calculate total days
@@ -271,6 +272,7 @@ public class LeaveRequestService : ILeaveRequestService
         int pageSize, 
         RequestStatus? status, 
         Guid? userId = null,
+        IEnumerable<Guid>? userIds = null,
         CancellationToken cancellationToken = default)
     {
          var query = _leaveRequestRepository.GetQueryable();
@@ -278,6 +280,11 @@ public class LeaveRequestService : ILeaveRequestService
          if (userId.HasValue)
          {
              query = query.Where(r => r.UserId == userId.Value);
+         }
+
+         if (userIds != null && userIds.Any())
+         {
+             query = query.Where(r => userIds.Contains(r.UserId));
          }
 
          if (status.HasValue)
@@ -294,9 +301,9 @@ public class LeaveRequestService : ILeaveRequestService
              .ToListAsync(cancellationToken);
 
          // Get user names for all requests
-         var userIds = requests.Select(r => r.UserId).Distinct().ToList();
+         var userIdsReq = requests.Select(r => r.UserId).Distinct().ToList();
          var users = await _userRepository.GetQueryable()
-             .Where(u => userIds.Contains(u.Id))
+             .Where(u => userIdsReq.Contains(u.Id))
              .Select(u => new { u.Id, u.FullName })
              .ToListAsync(cancellationToken);
          var userNames = users.ToDictionary(u => u.Id, u => u.FullName);
