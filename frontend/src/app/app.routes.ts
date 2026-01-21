@@ -53,6 +53,10 @@ export const routes: Routes = [
           {
             path: 'work-from-home',
             loadComponent: () => import('./features/requests/work-from-home/work-from-home.component').then(m => m.WorkFromHomeComponent)
+          },
+          {
+            path: 'time-off',
+            loadChildren: () => import('./features/requests/time-off/time-off.routes').then(m => m.timeOffRoutes)
           }
         ]
       },

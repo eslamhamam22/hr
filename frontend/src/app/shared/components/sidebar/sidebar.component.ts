@@ -52,6 +52,11 @@ export class SidebarComponent {
                     label: 'Work From Home',
                     icon: '🏠',
                     route: '/requests/work-from-home'
+                },
+                {
+                    label: 'Time Off',
+                    icon: '🏠',
+                    route: '/requests/time-off'
                 }
             ]
         },

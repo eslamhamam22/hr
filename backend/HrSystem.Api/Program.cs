@@ -89,6 +89,7 @@ builder.Services.AddScoped<HrSystem.Application.Services.Users.IUserService, HrS
 builder.Services.AddScoped<HrSystem.Application.Services.Dashboard.IDashboardService, HrSystem.Application.Services.Dashboard.DashboardService>();
 builder.Services.AddScoped<HrSystem.Application.Services.Reports.IReportService, HrSystem.Application.Services.Reports.ReportService>();
 builder.Services.AddScoped<HrSystem.Application.Services.WorkFromHome.IWorkFromHomeService, HrSystem.Application.Services.WorkFromHome.WorkFromHomeService>();
+builder.Services.AddScoped<HrSystem.Application.Services.TimeOff.ITimeOffService, HrSystem.Application.Services.TimeOff.TimeOffService>();
 
 var app = builder.Build();
 

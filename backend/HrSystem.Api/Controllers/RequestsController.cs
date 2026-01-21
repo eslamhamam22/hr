@@ -4,6 +4,8 @@ using HrSystem.Application.Services.Overtime;
 using HrSystem.Application.Services.Requests;
 using HrSystem.Application.Services.Users;
 using HrSystem.Application.Services.WorkFromHome;
+using HrSystem.Application.Services.TimeOff;
+using HrSystem.Application.DTOs.TimeOff;
 using HrSystem.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +24,7 @@ public class RequestsController : ControllerBase
     private readonly ILeaveRequestService _leaveRequestService;
     private readonly IOvertimeService _overtimeService;
     private readonly IWorkFromHomeService _workFromHomeService;
+    private readonly ITimeOffService _timeOffService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUserService _userService;
 
@@ -29,12 +32,14 @@ public class RequestsController : ControllerBase
         ILeaveRequestService leaveRequestService,
         IOvertimeService overtimeService,
         IWorkFromHomeService workFromHomeService,
+        ITimeOffService timeOffService,
         ICurrentUserService currentUserService,
         IUserService userService)
     {
         _leaveRequestService = leaveRequestService;
         _overtimeService = overtimeService;
         _workFromHomeService = workFromHomeService;
+        _timeOffService = timeOffService;
         _currentUserService = currentUserService;
         _userService = userService;
     }
@@ -144,6 +149,9 @@ public class RequestsController : ControllerBase
         // Get Work From Home Requests
         var wfhResult = await _workFromHomeService.GetWorkFromHomeRequestsAsync(1, 10000, status, userId, allowedUserIds, cancellationToken);
 
+        // Get Time Off Requests
+        var timeOffResult = await _timeOffService.GetTimeOffRequestsAsync(1, 10000, status, userId, allowedUserIds, cancellationToken);
+
         var allRequests = new List<RequestSummaryDto>();
 
         // Map leave requests
@@ -194,6 +202,22 @@ public class RequestsController : ControllerBase
             DepartmentId = null // Will be populated from user if needed
         }));
 
+        // Map time off requests
+        allRequests.AddRange(timeOffResult.Items.Select(t => new RequestSummaryDto
+        {
+            Id = t.Id,
+            EmployeeName = t.UserName ?? "Unknown",
+            RequestType = "Time Off",
+            Status = t.Status.ToString(),
+            StartDate = t.Date.Add(t.StartTime), // Combine Date and StartTime
+            EndDate = t.Date.Add(t.StartTime).AddHours(2), // 2 hours duration
+            SubmittedAt = t.SubmittedAt ?? t.CreatedAt,
+            ApprovedByName = t.ApprovedByHRName,
+            ApprovedAt = t.ApprovedAt,
+            UserId = t.UserId,
+            DepartmentId = null
+        }));
+
         // Apply date range filter
         if (fromDate.HasValue)
         {
@@ -242,6 +266,7 @@ public class RequestsController : ControllerBase
         IEnumerable<Application.DTOs.Requests.LeaveRequestDto> leaveRequests;
         IEnumerable<Application.DTOs.Overtime.OvertimeRequestDto> overtimeRequests;
         IEnumerable<Application.DTOs.WorkFromHome.WorkFromHomeRequestDto> wfhRequests;
+        IEnumerable<Application.DTOs.TimeOff.TimeOffRequestDto> timeOffRequests;
 
         switch (currentUser.Role)
         {
@@ -251,6 +276,7 @@ public class RequestsController : ControllerBase
                 leaveRequests = await _leaveRequestService.GetPendingForHRAsync(cancellationToken);
                 overtimeRequests = await _overtimeService.GetPendingForHRAsync(cancellationToken);
                 wfhRequests = await _workFromHomeService.GetPendingForHRAsync(cancellationToken);
+                timeOffRequests = await _timeOffService.GetPendingForHRAsync(cancellationToken);
                 break;
 
             case RoleType.Manager:
@@ -258,6 +284,7 @@ public class RequestsController : ControllerBase
                 leaveRequests = await _leaveRequestService.GetPendingForManagerAsync(currentUserId, cancellationToken);
                 overtimeRequests = await _overtimeService.GetPendingForManagerAsync(currentUserId, cancellationToken);
                 wfhRequests = await _workFromHomeService.GetPendingForManagerAsync(currentUserId, cancellationToken);
+                timeOffRequests = await _timeOffService.GetPendingForManagerAsync(currentUserId, cancellationToken);
                 break;
 
             case RoleType.Employee:
@@ -305,6 +332,19 @@ public class RequestsController : ControllerBase
             ApprovedAt = w.ApprovedAt
         }));
 
+        pending.AddRange(timeOffRequests.Select(t => new RequestSummaryDto
+        {
+            Id = t.Id,
+            EmployeeName = t.UserName ?? "Unknown",
+            RequestType = "Time Off",
+            Status = t.Status.ToString(),
+            StartDate = t.Date.Add(t.StartTime),
+            EndDate = t.Date.Add(t.StartTime).AddHours(2),
+            SubmittedAt = t.SubmittedAt ?? t.CreatedAt,
+            ApprovedByName = t.ApprovedByHRName,
+            ApprovedAt = t.ApprovedAt
+        }));
+
         var sortedPending = pending.OrderByDescending(x => x.SubmittedAt).ToList();
 
         return Ok(sortedPending);
@@ -332,6 +372,7 @@ public class RequestsController : ControllerBase
         return result != Guid.Empty ? Ok(new { message = "Leave request created successfully", id = result }) : BadRequest(new { message = "Failed to create leave request" });
     }
 
+
     /// <summary>
     /// Submit a request (Leave or Overtime)
     /// </summary>
@@ -345,6 +386,7 @@ public class RequestsController : ControllerBase
         // Try Overtime
         var overtimeResult = await _overtimeService.SubmitOvertimeRequestAsync(id, cancellationToken);
         if (overtimeResult) return Ok(new { message = "Overtime request submitted" });
+
 
         return BadRequest(new { message = "Failed to submit request. It may not exist or is not in Draft status." });
     }
@@ -366,6 +408,7 @@ public class RequestsController : ControllerBase
         var overtimeResult = await _overtimeService.ApproveOvertimeRequestAsync(id, approverId, cancellationToken);
         if (overtimeResult) return Ok(new { message = "Overtime request approved" });
 
+
         return BadRequest(new { message = "Failed to approve request. It may not exist or is not in Submitted status." });
     }
 
@@ -385,6 +428,7 @@ public class RequestsController : ControllerBase
         // Try Overtime
         var overtimeResult = await _overtimeService.RejectOvertimeRequestAsync(id, approverId, model.Reason, cancellationToken);
         if (overtimeResult) return Ok(new { message = "Overtime request rejected" });
+
 
         return BadRequest(new { message = "Failed to reject request. It may not exist or is not in Submitted status." });
     }

@@ -1,0 +1,50 @@
+<div class="time-off-list-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Time Off Requests</h1>
+            <p class="subtitle">View and manage your monthly 2-hour time off requests</p>
+        </div>
+        <button class="btn-primary" (click)="createNewRequest()">
+            <span class="icon">➕</span>
+            New Time Off Request
+        </button>
+    </div>
+
+    <app-data-table [columns]="columns" [data]="timeOffRequests" [pagination]="pagination" [loading]="loading"
+        (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)">
+
+        <ng-template #cellTemplate let-row let-column="column">
+            <ng-container [ngSwitch]="column.field">
+                <span *ngSwitchCase="'status'" [class]="getStatusClass(row.status)" class="status-badge">
+                    {{ getStatusLabel(row.status) }}
+                </span>
+                <span *ngSwitchCase="'date'">
+                    {{ formatDate(row.date) }}
+                </span>
+                <span *ngSwitchCase="'submittedAt'">
+                    {{ formatDate(row.submittedAt) }}
+                </span>
+                <span *ngSwitchDefault>
+                    {{ row[column.field] }}
+                </span>
+            </ng-container>
+        </ng-template>
+
+        <ng-template #actionsTemplate let-request>
+            <div class="action-buttons">
+                <button class="btn-icon btn-delete" (click)="deleteRequest(request, $event)" title="Delete"
+                    *ngIf="request.status === 1"> <!-- Draft only -->
+                    🗑️
+                </button>
+            </div>
+        </ng-template>
+    </app-data-table>
+</div>
+
+<app-confirm-dialog [isOpen]="isDeleteDialogOpen" title="Delete Time Off Request"
+    message="Are you sure you want to delete this time off request? This action cannot be undone." confirmText="Delete"
+    (confirmed)="onDeleteConfirmed()" (cancelled)="onDeleteCancelled()">
+</app-confirm-dialog>
+
+<app-time-off-modal [isOpen]="isModalOpen" (saved)="onModalSaved()" (cancelled)="onModalCancelled()">
+</app-time-off-modal>

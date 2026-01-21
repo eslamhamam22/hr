@@ -4,5 +4,6 @@ public enum RequestType
 {
     Leave = 1,
     Overtime = 2,
-    WorkFromHome = 3
+    WorkFromHome = 3,
+    TimeOff = 4
 }
