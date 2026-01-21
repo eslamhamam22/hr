@@ -18,6 +18,8 @@ public interface IOvertimeService
 
     Task<OvertimeRequestDto> CreateOvertimeRequestAsync(Guid userId, CreateOvertimeRequestDto dto, CancellationToken cancellationToken = default);
 
+    Task<OvertimeRequestDto?> UpdateOvertimeRequestAsync(Guid id, UpdateOvertimeRequestDto dto, CancellationToken cancellationToken = default);
+
     Task<bool> SubmitOvertimeRequestAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteOvertimeRequestAsync(Guid id, CancellationToken cancellationToken = default);

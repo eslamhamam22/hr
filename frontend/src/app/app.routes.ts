@@ -28,16 +28,31 @@ export const routes: Routes = [
         path: 'requests',
         children: [
           {
-            path: 'new',
-            component: RequestFormComponent
+            path: 'list',
+            redirectTo: 'leave',
+            pathMatch: 'full'
           },
           {
-            path: 'list',
+            path: '',
+            redirectTo: 'leave',
+            pathMatch: 'full'
+          },
+          {
+            path: 'all-requests',
+            loadComponent: () => import('./features/requests/all-requests/all-requests.component').then(m => m.AllRequestsComponent),
+            data: { roles: ['Manager', 'HR', 'Admin'] }
+          },
+          {
+            path: 'leave',
             component: RequestListComponent
           },
           {
             path: 'overtime',
             loadChildren: () => import('./features/requests/overtime/overtime.routes').then(m => m.overtimeRoutes)
+          },
+          {
+            path: 'work-from-home',
+            loadComponent: () => import('./features/requests/work-from-home/work-from-home.component').then(m => m.WorkFromHomeComponent)
           }
         ]
       },
@@ -53,11 +68,6 @@ export const routes: Routes = [
           {
             path: 'users',
             component: UserListComponent,
-            data: { roles: ['Admin'] }
-          },
-          {
-            path: 'users/new',
-            component: UserEditorComponent,
             data: { roles: ['Admin'] }
           },
           {

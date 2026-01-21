@@ -5,6 +5,7 @@ using HrSystem.Domain.Entities;
 using HrSystem.Domain.Enums;
 using HrSystem.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using HrSystem.Application.Services.ApprovalLogs;
 
 namespace HrSystem.Application.Services.Overtime;
 
@@ -12,13 +13,16 @@ public class OvertimeService : IOvertimeService
 {
     private readonly IRepository<OvertimeRequest> _overtimeRepository;
     private readonly IRepository<User> _userRepository;
+    private readonly IApprovalLogService _approvalLogService;
 
     public OvertimeService(
         IRepository<OvertimeRequest> overtimeRepository,
-        IRepository<User> userRepository)
+        IRepository<User> userRepository,
+        IApprovalLogService approvalLogService)
     {
         _overtimeRepository = overtimeRepository;
         _userRepository = userRepository;
+        _approvalLogService = approvalLogService;
     }
 
     public async Task<PaginatedResult<OvertimeRequestDto>> GetOvertimeRequestsAsync(
@@ -215,6 +219,10 @@ public class OvertimeService : IOvertimeService
             overtime.UpdatedAt = DateTime.UtcNow;
             _overtimeRepository.Update(overtime);
             await _overtimeRepository.SaveChangesAsync(cancellationToken);
+
+            await _approvalLogService.LogApprovalAsync(
+                id, RequestType.Overtime, approverId, true, "Approved by Manager/HR", cancellationToken);
+
             return true;
         }
 
@@ -228,6 +236,10 @@ public class OvertimeService : IOvertimeService
 
             _overtimeRepository.Update(overtime);
             await _overtimeRepository.SaveChangesAsync(cancellationToken);
+
+            await _approvalLogService.LogApprovalAsync(
+                id, RequestType.Overtime, approverId, true, "Final Approval by HR", cancellationToken);
+
             return true;
         }
 
@@ -265,7 +277,33 @@ public class OvertimeService : IOvertimeService
         _overtimeRepository.Update(overtime);
         await _overtimeRepository.SaveChangesAsync(cancellationToken);
 
+        await _approvalLogService.LogApprovalAsync(
+            id, RequestType.Overtime, approverId, false, reason, cancellationToken);
+
         return true;
+    }
+
+    public async Task<OvertimeRequestDto?> UpdateOvertimeRequestAsync(Guid id, UpdateOvertimeRequestDto dto, CancellationToken cancellationToken = default)
+    {
+        var overtime = await _overtimeRepository.GetByIdAsync(id, cancellationToken);
+        if (overtime == null) return null;
+
+        if (overtime.Status != RequestStatus.Draft)
+            throw new InvalidOperationException("Only draft requests can be updated.");
+
+        overtime.StartDateTime = dto.StartDateTime;
+        overtime.EndDateTime = dto.EndDateTime;
+        overtime.HoursWorked = dto.HoursWorked;
+        overtime.Reason = dto.Reason;
+        overtime.UpdatedAt = DateTime.UtcNow;
+
+        _overtimeRepository.Update(overtime);
+        await _overtimeRepository.SaveChangesAsync(cancellationToken);
+
+        var user = await _userRepository.GetByIdAsync(overtime.UserId, cancellationToken);
+        var result = MapToDto(overtime);
+        result.UserName = user?.FullName;
+        return result;
     }
 
     /// <summary>

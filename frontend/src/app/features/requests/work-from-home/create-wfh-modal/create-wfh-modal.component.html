@@ -1,0 +1,38 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onCancel()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>New Work From Home Request</h2>
+            <button class="close-btn" (click)="onCancel()">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="error-message" *ngIf="errorMessage()">
+                {{ errorMessage() }}
+            </div>
+
+            <div class="form-group">
+                <label for="fromDate">From Date</label>
+                <input type="date" id="fromDate" [(ngModel)]="fromDate" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="toDate">To Date</label>
+                <input type="date" id="toDate" [(ngModel)]="toDate" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="reason">Reason</label>
+                <textarea id="reason" [(ngModel)]="reason" rows="3" class="form-control"
+                    placeholder="Why are you requesting to work from home?"></textarea>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="onCancel()" [disabled]="isSubmitting()">Cancel</button>
+            <button class="btn btn-primary" (click)="onSave()" [disabled]="isSubmitting()">
+                <span *ngIf="isSubmitting()" class="spinner-sm"></span>
+                {{ isSubmitting() ? 'Saving...' : 'Save Request' }}
+            </button>
+        </div>
+    </div>
+</div>

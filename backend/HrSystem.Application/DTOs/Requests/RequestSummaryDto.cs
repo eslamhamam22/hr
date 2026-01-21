@@ -22,4 +22,8 @@ public class RequestSummaryDto
     public string? ApprovedByName { get; set; }
     
     public DateTime? ApprovedAt { get; set; }
+    
+    public Guid? UserId { get; set; }
+    
+    public int? DepartmentId { get; set; }
 }

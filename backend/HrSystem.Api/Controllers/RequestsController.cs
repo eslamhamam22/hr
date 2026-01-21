@@ -3,6 +3,7 @@ using HrSystem.Application.DTOs.Requests;
 using HrSystem.Application.Services.Overtime;
 using HrSystem.Application.Services.Requests;
 using HrSystem.Application.Services.Users;
+using HrSystem.Application.Services.WorkFromHome;
 using HrSystem.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,7 @@ using System.Security.Claims;
 namespace HrSystem.Api.Controllers;
 
 /// <summary>
-/// Leave and overtime requests controller
+/// Leave, overtime, and work from home requests controller
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -20,17 +21,20 @@ public class RequestsController : ControllerBase
 {
     private readonly ILeaveRequestService _leaveRequestService;
     private readonly IOvertimeService _overtimeService;
+    private readonly IWorkFromHomeService _workFromHomeService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUserService _userService;
 
     public RequestsController(
         ILeaveRequestService leaveRequestService,
         IOvertimeService overtimeService,
+        IWorkFromHomeService workFromHomeService,
         ICurrentUserService currentUserService,
         IUserService userService)
     {
         _leaveRequestService = leaveRequestService;
         _overtimeService = overtimeService;
+        _workFromHomeService = workFromHomeService;
         _currentUserService = currentUserService;
         _userService = userService;
     }
@@ -44,9 +48,6 @@ public class RequestsController : ControllerBase
         // Get Leave Requests (fetch all pages - simplified for history view, ideally use pagination)
         var leaveResult = await _leaveRequestService.GetLeaveRequestsAsync(1, 1000, null, userId, cancellationToken);
         
-        // Get Overtime Requests
-        var overtimeResult = await _overtimeService.GetOvertimeRequestsAsync(1, 1000, null, null, userId, cancellationToken);
-
         var history = new List<RequestSummaryDto>();
 
         history.AddRange(leaveResult.Items.Select(l => new RequestSummaryDto
@@ -62,7 +63,63 @@ public class RequestsController : ControllerBase
             ApprovedAt = l.ApprovedAt
         }));
 
-        history.AddRange(overtimeResult.Items.Select(o => new RequestSummaryDto
+        // Sort by CreatedAt/SubmittedAt desc
+        var sortedHistory = history.OrderByDescending(x => x.SubmittedAt).ToList();
+
+        return Ok(sortedHistory);
+    }
+
+    /// <summary>
+    /// Get all requests with filtering options (for Manager/HR/Admin)
+    /// Supports filtering by userId, departmentId, status, and date range
+    /// </summary>
+    [HttpGet("all")]
+    [Authorize(Roles = "Manager,HR,Admin")]
+    public async Task<IActionResult> GetAllRequests(
+        [FromQuery] Guid? userId,
+        [FromQuery] Guid? departmentId,
+        [FromQuery] RequestStatus? status,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (currentUserId == Guid.Empty)
+            return Unauthorized();
+
+        var currentUser = await _userService.GetUserByIdAsync(currentUserId, cancellationToken);
+        if (currentUser == null)
+            return Unauthorized();
+
+        // Get Leave Requests
+        var leaveResult = await _leaveRequestService.GetLeaveRequestsAsync(1, 10000, status, userId, cancellationToken);
+        
+        // Get Overtime Requests
+        var overtimeResult = await _overtimeService.GetOvertimeRequestsAsync(1, 10000, status, null, userId, cancellationToken);
+
+        // Get Work From Home Requests
+        var wfhResult = await _workFromHomeService.GetWorkFromHomeRequestsAsync(1, 10000, status, userId, cancellationToken);
+
+        var allRequests = new List<RequestSummaryDto>();
+
+        // Map leave requests
+        allRequests.AddRange(leaveResult.Items.Select(l => new RequestSummaryDto
+        {
+            Id = l.Id,
+            EmployeeName = l.UserName ?? "Unknown",
+            RequestType = "Leave - " + l.LeaveTypeName,
+            Status = l.Status.ToString(),
+            StartDate = l.StartDate,
+            EndDate = l.EndDate,
+            SubmittedAt = l.SubmittedAt ?? l.CreatedAt,
+            ApprovedByName = l.ApprovedByHRName,
+            ApprovedAt = l.ApprovedAt,
+            UserId = l.UserId,
+            DepartmentId = null // Will be populated from user if needed
+        }));
+
+        // Map overtime requests
+        allRequests.AddRange(overtimeResult.Items.Select(o => new RequestSummaryDto
         {
             Id = o.Id,
             EmployeeName = o.UserName ?? "Unknown",
@@ -72,13 +129,50 @@ public class RequestsController : ControllerBase
             EndDate = o.EndDateTime,
             SubmittedAt = o.SubmittedAt ?? o.CreatedAt,
             ApprovedByName = o.ApprovedByHRName,
-            ApprovedAt = o.ApprovedAt
+            ApprovedAt = o.ApprovedAt,
+            UserId = o.UserId,
+            DepartmentId = null // Will be populated from user if needed
         }));
 
-        // Sort by CreatedAt/SubmittedAt desc
-        var sortedHistory = history.OrderByDescending(x => x.SubmittedAt).ToList();
+        // Map work from home requests
+        allRequests.AddRange(wfhResult.Items.Select(w => new RequestSummaryDto
+        {
+            Id = w.Id,
+            EmployeeName = w.UserName ?? "Unknown",
+            RequestType = "Work From Home",
+            Status = w.Status.ToString(),
+            StartDate = w.FromDate,
+            EndDate = w.ToDate,
+            SubmittedAt = w.SubmittedAt ?? w.CreatedAt,
+            ApprovedByName = w.ApprovedByHRName,
+            ApprovedAt = w.ApprovedAt,
+            UserId = w.UserId,
+            DepartmentId = null // Will be populated from user if needed
+        }));
 
-        return Ok(sortedHistory);
+        // Apply date range filter
+        if (fromDate.HasValue)
+        {
+            allRequests = allRequests.Where(r => r.StartDate >= fromDate.Value).ToList();
+        }
+        if (toDate.HasValue)
+        {
+            allRequests = allRequests.Where(r => r.EndDate <= toDate.Value).ToList();
+        }
+
+        // Apply department filter if specified
+        if (departmentId.HasValue)
+        {
+            var userIds = allRequests.Select(r => r.UserId).Distinct().ToList();
+            var usersInDept = await _userService.GetUsersByDepartmentAsync(departmentId.Value, cancellationToken);
+            var deptUserIds = usersInDept.Select(u => u.Id).ToHashSet();
+            allRequests = allRequests.Where(r => r.UserId.HasValue && deptUserIds.Contains(r.UserId.Value)).ToList();
+        }
+
+        // Sort by submitted date descending
+        var sortedRequests = allRequests.OrderByDescending(x => x.SubmittedAt).ToList();
+
+        return Ok(sortedRequests);
     }
 
     /// <summary>
@@ -103,6 +197,7 @@ public class RequestsController : ControllerBase
 
         IEnumerable<Application.DTOs.Requests.LeaveRequestDto> leaveRequests;
         IEnumerable<Application.DTOs.Overtime.OvertimeRequestDto> overtimeRequests;
+        IEnumerable<Application.DTOs.WorkFromHome.WorkFromHomeRequestDto> wfhRequests;
 
         switch (currentUser.Role)
         {
@@ -111,12 +206,14 @@ public class RequestsController : ControllerBase
                 // HR and Admin can see all pending requests (both PendingHR and Submitted)
                 leaveRequests = await _leaveRequestService.GetPendingForHRAsync(cancellationToken);
                 overtimeRequests = await _overtimeService.GetPendingForHRAsync(cancellationToken);
+                wfhRequests = await _workFromHomeService.GetPendingForHRAsync(cancellationToken);
                 break;
 
             case RoleType.Manager:
                 // Managers can only see requests from their subordinates (Submitted status)
                 leaveRequests = await _leaveRequestService.GetPendingForManagerAsync(currentUserId, cancellationToken);
                 overtimeRequests = await _overtimeService.GetPendingForManagerAsync(currentUserId, cancellationToken);
+                wfhRequests = await _workFromHomeService.GetPendingForManagerAsync(currentUserId, cancellationToken);
                 break;
 
             case RoleType.Employee:
@@ -149,6 +246,19 @@ public class RequestsController : ControllerBase
             SubmittedAt = o.SubmittedAt ?? o.CreatedAt,
             ApprovedByName = o.ApprovedByHRName,
             ApprovedAt = o.ApprovedAt
+        }));
+
+        pending.AddRange(wfhRequests.Select(w => new RequestSummaryDto
+        {
+            Id = w.Id,
+            EmployeeName = w.UserName ?? "Unknown",
+            RequestType = "Work From Home",
+            Status = w.Status.ToString(),
+            StartDate = w.FromDate,
+            EndDate = w.ToDate,
+            SubmittedAt = w.SubmittedAt ?? w.CreatedAt,
+            ApprovedByName = w.ApprovedByHRName,
+            ApprovedAt = w.ApprovedAt
         }));
 
         var sortedPending = pending.OrderByDescending(x => x.SubmittedAt).ToList();
@@ -255,10 +365,5 @@ public class CreateLeaveRequestModel
     public int LeaveTypeId { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    public string Reason { get; set; } = string.Empty;
-}
-
-public class RejectRequestModel
-{
     public string Reason { get; set; } = string.Empty;
 }

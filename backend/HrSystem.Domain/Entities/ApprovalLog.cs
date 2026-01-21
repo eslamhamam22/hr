@@ -1,4 +1,5 @@
 using HrSystem.Domain.Common;
+using HrSystem.Domain.Enums;
 
 namespace HrSystem.Domain.Entities;
 
@@ -9,7 +10,7 @@ public class ApprovalLog : Entity
 {
     public Guid RequestId { get; set; }
     
-    public string RequestType { get; set; } = string.Empty; // "LeaveRequest" or "OvertimeRequest"
+    public RequestType RequestType { get; set; }
     
     public Guid ApprovedByUserId { get; set; }
     

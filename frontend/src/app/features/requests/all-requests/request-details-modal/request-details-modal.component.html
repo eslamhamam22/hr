@@ -1,0 +1,119 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onClose()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>Request Details</h2>
+            <button class="close-btn" (click)="onClose()">&times;</button>
+        </div>
+
+        <div class="modal-body" *ngIf="request">
+            <div class="detail-section">
+                <h3>Request Information</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Employee:</label>
+                        <span>{{ request.employeeName }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Request Type:</label>
+                        <span>{{ request.requestType }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Status:</label>
+                        <span [class]="getStatusClass(request.status)" class="status-badge">
+                            {{ request.status }}
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Start Date:</label>
+                        <span>{{ request.startDate | date: 'medium' }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>End Date:</label>
+                        <span>{{ request.endDate | date: 'medium' }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Submitted At:</label>
+                        <span>{{ request.submittedAt | date: 'medium' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section" *ngIf="request.reason">
+                <h3>Reason</h3>
+                <p class="reason-text">{{ request.reason }}</p>
+            </div>
+
+            <div class="detail-section" *ngIf="request.approvedByName || request.approvedAt">
+                <h3>Approval Information</h3>
+                <div class="detail-grid">
+                    <div class="detail-item" *ngIf="request.approvedByName">
+                        <label>Approved By:</label>
+                        <span>{{ request.approvedByName }}</span>
+                    </div>
+                    <div class="detail-item" *ngIf="request.approvedAt">
+                        <label>Approved At:</label>
+                        <span>{{ request.approvedAt | date: 'medium' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section" *ngIf="approvalLogs && approvalLogs.length > 0">
+                <h3>Approval History</h3>
+                <div class="approval-timeline">
+                    <div class="timeline-item" *ngFor="let log of approvalLogs">
+                        <div class="timeline-marker" [ngClass]="{'approved': log.approved, 'rejected': !log.approved}">
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-user">{{ log.approvedByUserName || 'Unknown User' }}</span>
+                                <span class="timeline-action"
+                                    [ngClass]="{'approved': log.approved, 'rejected': !log.approved}">
+                                    {{ log.approved ? 'Approved' : 'Rejected' }}
+                                </span>
+                                <span class="timeline-date">{{ log.createdAt | date:'medium' }}</span>
+                            </div>
+                            <div class="timeline-comments" *ngIf="log.comments">
+                                {{ log.comments }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="onClose()">Close</button>
+            <button class="btn btn-success" (click)="onApprove()"
+                *ngIf="request?.status === 'Submitted' || request?.status === 'PendingHR'">
+                Approve
+            </button>
+            <button class="btn btn-danger" (click)="onRejectClick()"
+                *ngIf="request?.status === 'Submitted' || request?.status === 'PendingHR'">
+                Reject
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Confirmation Modal -->
+<div class="modal-overlay" *ngIf="showRejectModal" (click)="onRejectCancel()">
+    <div class="modal-content reject-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>Reject Request</h2>
+            <button class="close-btn" (click)="onRejectCancel()">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <label for="rejectionReason">Rejection Reason:</label>
+            <textarea id="rejectionReason" [(ngModel)]="rejectionReason" rows="4" class="rejection-textarea"
+                placeholder="Please provide a reason for rejection..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="onRejectCancel()">Cancel</button>
+            <button class="btn btn-danger" (click)="onRejectConfirm()" [disabled]="!rejectionReason.trim()">
+                Confirm Rejection
+            </button>
+        </div>
+    </div>
+</div>

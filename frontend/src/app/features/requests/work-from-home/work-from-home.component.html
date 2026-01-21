@@ -1,0 +1,35 @@
+<div class="wfh-container">
+    <div class="page-header">
+        <h1>Work From Home Requests</h1>
+        <button class="btn btn-primary" (click)="openCreateModal()">
+            + New Request
+        </button>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage()" class="error-message">
+        {{ errorMessage() }}
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading()" class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Loading requests...</p>
+    </div>
+
+    <!-- Requests Table -->
+    <div *ngIf="!isLoading() && !errorMessage()" class="table-container">
+        <app-data-table [data]="requests()" [columns]="columns" ></app-data-table>
+
+        <div *ngIf="requests().length === 0" class="no-data">
+            <p>No work from home requests found.</p>
+            <button class="btn btn-primary" (click)="openCreateModal()">
+                Create Your First Request
+            </button>
+        </div>
+    </div>
+
+    <!-- Create Modal -->
+    <app-create-wfh-modal [isOpen]="isModalOpen" (saved)="onModalSaved()"
+        (cancelled)="onModalCancelled()"></app-create-wfh-modal>
+</div>

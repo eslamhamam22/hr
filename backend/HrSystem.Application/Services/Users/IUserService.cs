@@ -10,4 +10,5 @@ public interface IUserService
     Task<UserDto> CreateUserAsync(CreateUserDto dto, CancellationToken cancellationToken = default);
     Task<bool> UpdateUserAsync(Guid id, UpdateUserDto dto, CancellationToken cancellationToken = default);
     Task<bool> DeleteUserAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IEnumerable<UserDto>> GetUsersByDepartmentAsync(Guid departmentId, CancellationToken cancellationToken = default);
 }

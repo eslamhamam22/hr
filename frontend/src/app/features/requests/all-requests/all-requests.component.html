@@ -1,0 +1,64 @@
+<div class="all-requests-container">
+  <div class="page-header">
+    <h1>All Requests</h1>
+    <p class="subtitle">View and filter all leave and overtime requests</p>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <h3>Filters</h3>
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label for="statusFilter">Status</label>
+        <select id="statusFilter" [(ngModel)]="selectedStatus" class="filter-input">
+          <option value="">All Statuses</option>
+          <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="fromDate">From Date</label>
+        <input type="date" id="fromDate" [(ngModel)]="fromDate" class="filter-input" />
+      </div>
+
+      <div class="filter-group">
+        <label for="toDate">To Date</label>
+        <input type="date" id="toDate" [(ngModel)]="toDate" class="filter-input" />
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn btn-primary" (click)="applyFilters()">
+          Apply Filters
+        </button>
+        <button class="btn btn-secondary" (click)="clearFilters()">
+          Clear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage()" class="error-message">
+    {{ errorMessage() }}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-spinner">
+    <div class="spinner"></div>
+    <p>Loading requests...</p>
+  </div>
+
+  <!-- Requests Table -->
+  <div *ngIf="!isLoading() && !errorMessage()" class="table-container">
+    <app-data-table [data]="filteredRequests()" [columns]="columns" 
+      (rowClick)="onRowClick($event)"></app-data-table>
+
+    <div *ngIf="filteredRequests().length === 0" class="no-data">
+      <p>No requests found matching the selected filters.</p>
+    </div>
+  </div>
+
+  <!-- Request Details Modal -->
+  <app-request-details-modal [request]="selectedRequest" [isOpen]="isModalOpen" (close)="onModalClose()"
+    (approve)="onApproveRequest($event)" (reject)="onRejectRequest($event)"></app-request-details-modal>
+</div>

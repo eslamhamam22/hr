@@ -167,4 +167,33 @@ public class UserService : IUserService
 
         return true;
     }
+
+    public async Task<IEnumerable<UserDto>> GetUsersByDepartmentAsync(Guid departmentId, CancellationToken cancellationToken = default)
+    {
+        var usersQuery = _userRepository.GetQueryable();
+        var departmentsQuery = _departmentRepository.GetQueryable();
+
+        var users = await (from u in usersQuery
+                          where u.DepartmentId == departmentId
+                          join d in departmentsQuery on u.DepartmentId equals d.Id into deptGroup
+                          from dept in deptGroup.DefaultIfEmpty()
+                          join m in usersQuery on u.ManagerId equals m.Id into managerGroup
+                          from mgr in managerGroup.DefaultIfEmpty()
+                          select new UserDto
+                          {
+                              Id = u.Id,
+                              Username = u.Username,
+                              FullName = u.FullName,
+                              Email = u.Email,
+                              Role = u.Role,
+                              ManagerId = u.ManagerId,
+                              ManagerName = mgr.FullName,
+                              DepartmentId = u.DepartmentId,
+                              DepartmentName = dept.Name,
+                              IsActive = u.IsActive,
+                              CreatedAt = u.CreatedAt
+                          }).ToListAsync(cancellationToken);
+
+        return users;
+    }
 }

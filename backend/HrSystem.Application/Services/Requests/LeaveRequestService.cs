@@ -6,6 +6,7 @@ using HrSystem.Domain.Entities;
 using HrSystem.Domain.Enums;
 using HrSystem.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using HrSystem.Application.Services.ApprovalLogs;
 
 namespace HrSystem.Application.Services.Requests;
 
@@ -13,13 +14,16 @@ public class LeaveRequestService : ILeaveRequestService
 {
     private readonly IRepository<LeaveRequest> _leaveRequestRepository;
     private readonly IRepository<User> _userRepository;
+    private readonly IApprovalLogService _approvalLogService;
 
     public LeaveRequestService(
         IRepository<LeaveRequest> leaveRequestRepository,
-        IRepository<User> userRepository)
+        IRepository<User> userRepository,
+        IApprovalLogService approvalLogService)
     {
         _leaveRequestRepository = leaveRequestRepository;
         _userRepository = userRepository;
+        _approvalLogService = approvalLogService;
     }
 
     /// <summary>
@@ -37,6 +41,7 @@ public class LeaveRequestService : ILeaveRequestService
         bool submitImmediately = false,
         CancellationToken cancellationToken = default)
     {
+        // ... (existing implementation) ...
         var requestor = await _userRepository.GetByIdAsync(requestorUserId, cancellationToken);
         var targetUser = await _userRepository.GetByIdAsync(targetUserId, cancellationToken);
         
@@ -103,6 +108,12 @@ public class LeaveRequestService : ILeaveRequestService
 
         await _leaveRequestRepository.AddAsync(request, cancellationToken);
         await _leaveRequestRepository.SaveChangesAsync(cancellationToken);
+
+        if (request.Status == RequestStatus.Approved && request.ApprovedByHRId.HasValue)
+        {
+             await _approvalLogService.LogApprovalAsync(
+                request.Id, RequestType.Leave, request.ApprovedByHRId.Value, true, "Auto-approved by Creator", cancellationToken);
+        }
 
         return MapToDto(request);
     }
@@ -191,6 +202,10 @@ public class LeaveRequestService : ILeaveRequestService
             request.UpdatedAt = DateTime.UtcNow;
             _leaveRequestRepository.Update(request);
             await _leaveRequestRepository.SaveChangesAsync(cancellationToken);
+
+            await _approvalLogService.LogApprovalAsync(
+                requestId, RequestType.Leave, approverUserId, true, "Approved by Manager/HR", cancellationToken);
+
             return true;
         }
 
@@ -204,6 +219,10 @@ public class LeaveRequestService : ILeaveRequestService
 
             _leaveRequestRepository.Update(request);
             await _leaveRequestRepository.SaveChangesAsync(cancellationToken);
+            
+            await _approvalLogService.LogApprovalAsync(
+                requestId, RequestType.Leave, approverUserId, true, "Final Approval by HR", cancellationToken);
+
             return true;
         }
 
@@ -240,6 +259,9 @@ public class LeaveRequestService : ILeaveRequestService
 
         _leaveRequestRepository.Update(request);
         await _leaveRequestRepository.SaveChangesAsync(cancellationToken);
+
+        await _approvalLogService.LogApprovalAsync(
+            requestId, RequestType.Leave, approverUserId, false, rejectionReason, cancellationToken);
 
         return true;
     }

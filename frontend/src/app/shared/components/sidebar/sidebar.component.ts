@@ -33,24 +33,25 @@ export class SidebarComponent {
             icon: '📝',
             children: [
                 {
-                    label: 'My Requests',
-                    icon: '📋',
-                    route: '/requests/list'
-                },
-                /*{
-                    label: 'New Leave Request',
-                    icon: '🏖️',
-                    route: '/requests/new'
+                    label: 'All Employees Requests',
+                    icon: '📊',
+                    route: '/requests/all-requests',
+                    roles: ['Manager', 'HR', 'Admin']
                 },
                 {
-                    label: 'New Overtime',
-                    icon: '⏰',
-                    route: '/requests/overtime/new'
-                },*/
+                    label: 'Leave Requests',
+                    icon: '📋',
+                    route: '/requests/leave'
+                },
                 {
                     label: 'Overtime Requests',
                     icon: '⏱️',
                     route: '/requests/overtime'
+                },
+                {
+                    label: 'Work From Home',
+                    icon: '🏠',
+                    route: '/requests/work-from-home'
                 }
             ]
         },

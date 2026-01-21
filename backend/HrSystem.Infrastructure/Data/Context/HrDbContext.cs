@@ -19,6 +19,7 @@ public class HrDbContext : DbContext, IApplicationDbContext
     public DbSet<OvertimeRequest> OvertimeRequests => Set<OvertimeRequest>();
     public DbSet<ApprovalLog> ApprovalLogs => Set<ApprovalLog>();
     public DbSet<AttendanceLog> AttendanceLogs => Set<AttendanceLog>();
+    public DbSet<WorkFromHomeRequest> WorkFromHomeRequests => Set<WorkFromHomeRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -73,5 +74,14 @@ public class HrDbContext : DbContext, IApplicationDbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.UserId, e.Date }).IsUnique();
         });
+
+        // Configure WorkFromHomeRequest entity
+        modelBuilder.Entity<WorkFromHomeRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.RejectionReason).HasMaxLength(500);
+        });
+
     }
 }

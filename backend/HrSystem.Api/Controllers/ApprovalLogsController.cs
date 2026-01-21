@@ -1,4 +1,5 @@
 using HrSystem.Application.Services.ApprovalLogs;
+using HrSystem.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,7 +32,13 @@ public class ApprovalLogsController : ControllerBase
         [FromQuery] bool? approved = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _approvalLogService.GetApprovalLogsAsync(page, pageSize, requestType, approvedByUserId, approved, cancellationToken);
+        RequestType? typeEnum = null;
+        if (!string.IsNullOrEmpty(requestType) && Enum.TryParse<RequestType>(requestType, true, out var parsed))
+        {
+            typeEnum = parsed;
+        }
+
+        var result = await _approvalLogService.GetApprovalLogsAsync(page, pageSize, typeEnum, approvedByUserId, approved, cancellationToken);
         return Ok(result);
     }
 
@@ -47,5 +54,15 @@ public class ApprovalLogsController : ControllerBase
             return NotFound(new { message = "Approval log not found" });
 
         return Ok(approvalLog);
+    }
+
+    /// <summary>
+    /// Get all approval logs for a specific request
+    /// </summary>
+    [HttpGet("request/{requestId}")]
+    public async Task<IActionResult> GetApprovalLogsForRequest(Guid requestId, CancellationToken cancellationToken)
+    {
+        var logs = await _approvalLogService.GetApprovalLogsForRequestAsync(requestId, cancellationToken);
+        return Ok(logs);
     }
 }
