@@ -1,39 +1,19 @@
 <div class="approval-container">
-  <h1>Approval Queue</h1>
-
-  <div *ngIf="isLoading()" class="loading">
-    Loading pending approvals...
-  </div>
-
-  <div *ngIf="!isLoading() && pendingRequests().length > 0" class="requests-list">
-    <div *ngFor="let request of pendingRequests()" class="request-card">
-      <div class="request-header">
-        <h3>{{ request.employeeName }}</h3>
-        <span class="status-badge">{{ request.status }}</span>
-      </div>
-
-      <div class="request-details">
-        <p><strong>Type:</strong> {{ request.requestType }}</p>
-        <p><strong>Period:</strong> {{ request.startDate | date: 'MMM dd, yyyy' }} - {{ request.endDate | date: 'MMM dd, yyyy' }}</p>
-        <p><strong>Submitted:</strong> {{ request.submittedAt | date: 'MMM dd, yyyy' }}</p>
-      </div>
-
-      <div class="request-actions">
-        <button class="btn btn-success" (click)="approveRequest(request.id)">
-          Approve
-        </button>
-        <button class="btn btn-danger" (click)="rejectRequest(request.id)">
-          Reject
-        </button>
-      </div>
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Approval Queue</h1>
     </div>
   </div>
-
-  <div *ngIf="!isLoading() && pendingRequests().length === 0" class="no-data">
-    <p>No pending approvals</p>
-  </div>
-
-  <div *ngIf="errorMessage()" class="alert alert-error">
-    {{ errorMessage() }}
-  </div>
+  <app-data-table [columns]="columns" [data]="pendingRequests()" [loading]="isLoading()">
+    <ng-template #actionsTemplate let-row>
+      <div class="action-buttons">
+        <button class="btn-icon btn-success" (click)="approveRequest(row.id)" title="Approve">
+          ✅ 
+        </button>
+        <button class="btn-icon btn-danger" (click)="rejectRequest(row.id)" title="Reject">
+          ❌ 
+        </button>
+      </div>
+    </ng-template>
+  </app-data-table>
 </div>

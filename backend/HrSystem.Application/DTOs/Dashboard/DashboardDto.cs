@@ -51,6 +51,38 @@ public class ManagerDashboardDto : EmployeeDashboardDto
     public List<MonthlyTrendDto> MonthlyTrend { get; set; } = new();
 }
 
+/// <summary>
+/// Dashboard data for admins/HR
+/// </summary>
+public class AdminDashboardDto : EmployeeDashboardDto
+{
+    public int TotalEmployees { get; set; }
+    public int TotalDepartments { get; set; }
+    
+    public RequestStatsDto SystemLeaveStats { get; set; } = new();
+    public RequestStatsDto SystemOvertimeStats { get; set; } = new();
+    
+    public List<DepartmentRequestCountDto> RequestsByDepartment { get; set; } = new();
+    public List<MonthlyTrendDto> SystemMonthlyTrend { get; set; } = new();
+    public List<LeaveTypeCountDto> SystemLeaveTypeDistribution { get; set; } = new();
+}
+
+public class RequestStatsDto
+{
+    public int Total { get; set; }
+    public int Pending { get; set; }
+    public int Approved { get; set; }
+    public int Rejected { get; set; }
+}
+
+public class DepartmentRequestCountDto
+{
+    public string DepartmentName { get; set; } = string.Empty;
+    public int LeaveRequests { get; set; }
+    public int OvertimeRequests { get; set; }
+    public int TotalRequests => LeaveRequests + OvertimeRequests;
+}
+
 public class LeaveSummaryDto
 {
     public int TotalDaysUsed { get; set; }

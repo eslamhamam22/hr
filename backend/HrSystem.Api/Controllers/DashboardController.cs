@@ -47,6 +47,20 @@ public class DashboardController : ControllerBase
         return Ok(dashboard);
     }
 
+    /// <summary>
+    /// Get admin/HR dashboard data (includes system-wide statistics)
+    /// </summary>
+    [HttpGet("admin")]
+    [Authorize(Policy = "RequireHRRole")]
+    public async Task<IActionResult> GetAdminDashboard(CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty) return Unauthorized();
+
+        var dashboard = await _dashboardService.GetAdminDashboardAsync(userId, cancellationToken);
+        return Ok(dashboard);
+    }
+
     private Guid GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

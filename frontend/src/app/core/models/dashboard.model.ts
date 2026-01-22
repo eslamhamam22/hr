@@ -60,3 +60,27 @@ export interface MonthlyTrend {
     leaveRequests: number;
     overtimeRequests: number;
 }
+
+export interface AdminDashboard extends EmployeeDashboard {
+    totalEmployees: number;
+    totalDepartments: number;
+    systemLeaveStats: RequestStats;
+    systemOvertimeStats: RequestStats;
+    requestsByDepartment: DepartmentRequestCount[];
+    systemMonthlyTrend: MonthlyTrend[];
+    systemLeaveTypeDistribution: LeaveTypeCount[];
+}
+
+export interface RequestStats {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+}
+
+export interface DepartmentRequestCount {
+    departmentName: string;
+    leaveRequests: number;
+    overtimeRequests: number;
+    totalRequests: number;
+}

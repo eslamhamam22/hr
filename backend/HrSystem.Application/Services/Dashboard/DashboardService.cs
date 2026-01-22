@@ -239,4 +239,117 @@ public class DashboardService : IDashboardService
             MonthlyTrend = monthlyTrend
         };
     }
+
+    public async Task<AdminDashboardDto> GetAdminDashboardAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        // Get base employee dashboard data for the admin themselves
+        var employeeDashboard = await GetEmployeeDashboardAsync(userId, cancellationToken);
+        
+        var now = DateTime.UtcNow;
+        var startOfYear = new DateTime(now.Year, 1, 1);
+        
+        // System Stats
+        var totalEmployees = await _userRepository.GetQueryable().CountAsync(cancellationToken);
+        var totalDepartments = await _departmentRepository.GetQueryable().CountAsync(cancellationToken);
+        
+        // System Leave Stats (Current Year)
+        var allLeaveRequests = await _leaveRequestRepository.GetQueryable()
+            .Where(r => r.CreatedAt >= startOfYear)
+            .ToListAsync(cancellationToken);
+            
+        var systemLeaveStats = new RequestStatsDto
+        {
+            Total = allLeaveRequests.Count,
+            Pending = allLeaveRequests.Count(r => r.Status == RequestStatus.Submitted),
+            Approved = allLeaveRequests.Count(r => r.Status == RequestStatus.Approved),
+            Rejected = allLeaveRequests.Count(r => r.Status == RequestStatus.Rejected)
+        };
+        
+        // System Overtime Stats (Current Year)
+        var allOvertimeRequests = await _overtimeRequestRepository.GetQueryable()
+            .Where(r => r.CreatedAt >= startOfYear)
+            .ToListAsync(cancellationToken);
+            
+        var systemOvertimeStats = new RequestStatsDto
+        {
+            Total = allOvertimeRequests.Count,
+            Pending = allOvertimeRequests.Count(r => r.Status == RequestStatus.Submitted),
+            Approved = allOvertimeRequests.Count(r => r.Status == RequestStatus.Approved),
+            Rejected = allOvertimeRequests.Count(r => r.Status == RequestStatus.Rejected)
+        };
+        
+        // Requests by Department
+        var departments = await _departmentRepository.GetQueryable().ToListAsync(cancellationToken);
+        
+        // Get user department mapping
+        var userDepartmentMap = await _userRepository.GetQueryable()
+            .Where(u => u.DepartmentId.HasValue)
+            .ToDictionaryAsync(u => u.Id, u => u.DepartmentId.Value, cancellationToken);
+            
+        var requestsByDepartment = departments.Select(d => 
+        {
+            var deptLeaveCount = allLeaveRequests.Count(r => userDepartmentMap.ContainsKey(r.UserId) && userDepartmentMap[r.UserId] == d.Id);
+            var deptOvertimeCount = allOvertimeRequests.Count(r => userDepartmentMap.ContainsKey(r.UserId) && userDepartmentMap[r.UserId] == d.Id);
+            
+            return new DepartmentRequestCountDto
+            {
+                DepartmentName = d.Name,
+                LeaveRequests = deptLeaveCount,
+                OvertimeRequests = deptOvertimeCount
+            };
+        }).ToList();
+        
+        // System Monthly Trend (Last 6 Months)
+        var monthlyTrend = new List<MonthlyTrendDto>();
+        for (int i = 5; i >= 0; i--)
+        {
+            var monthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-i);
+            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            
+            var leaveCount = await _leaveRequestRepository.GetQueryable()
+                .Where(r => r.CreatedAt >= monthStart && r.CreatedAt <= monthEnd)
+                .CountAsync(cancellationToken);
+
+            var overtimeCount = await _overtimeRequestRepository.GetQueryable()
+                .Where(r => r.CreatedAt >= monthStart && r.CreatedAt <= monthEnd)
+                .CountAsync(cancellationToken);
+
+            monthlyTrend.Add(new MonthlyTrendDto
+            {
+                Month = monthStart.ToString("MMM yyyy"),
+                LeaveRequests = leaveCount,
+                OvertimeRequests = overtimeCount
+            });
+        }
+        
+        // System Leave Type Distribution
+        var systemLeaveTypeDistribution = allLeaveRequests
+            .Where(r => r.Status == RequestStatus.Approved)
+            .GroupBy(r => r.LeaveType)
+            .Select(g => new LeaveTypeCountDto
+            {
+                LeaveType = g.Key.ToString(),
+                Days = g.Sum(r => r.TotalDays),
+                Count = g.Count()
+            })
+            .ToList();
+
+        return new AdminDashboardDto
+        {
+            EmployeeName = employeeDashboard.EmployeeName,
+            DepartmentName = employeeDashboard.DepartmentName,
+            Role = employeeDashboard.Role,
+            LeaveSummary = employeeDashboard.LeaveSummary,
+            OvertimeSummary = employeeDashboard.OvertimeSummary,
+            RecentRequests = employeeDashboard.RecentRequests,
+            
+            TotalEmployees = totalEmployees,
+            TotalDepartments = totalDepartments,
+            SystemLeaveStats = systemLeaveStats,
+            SystemOvertimeStats = systemOvertimeStats,
+            RequestsByDepartment = requestsByDepartment,
+            SystemMonthlyTrend = monthlyTrend,
+            SystemLeaveTypeDistribution = systemLeaveTypeDistribution
+        };
+    }
 }
