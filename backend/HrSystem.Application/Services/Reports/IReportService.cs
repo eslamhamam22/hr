@@ -21,4 +21,16 @@ public interface IReportService
         DateTime endDate, 
         Guid? departmentId = null, 
         CancellationToken cancellationToken = default);
+
+    Task<IEnumerable<dynamic>> GetTimeOffReportAsync(
+        DateTime startDate,
+        DateTime endDate,
+        Guid? departmentId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<IEnumerable<dynamic>> GetWorkFromHomeReportAsync(
+        DateTime startDate,
+        DateTime endDate,
+        Guid? departmentId = null,
+        CancellationToken cancellationToken = default);
 }

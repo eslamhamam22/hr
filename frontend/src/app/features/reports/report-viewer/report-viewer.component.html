@@ -8,6 +8,8 @@
       <option value="attendance">Attendance Report</option>
       <option value="leave-summary">Leave Summary</option>
       <option value="overtime">Overtime Audit</option>
+      <option value="time-off">Time Off Report</option>
+      <option value="work-from-home">Work From Home Report</option>
     </select>
   </div>
 
@@ -18,33 +20,36 @@
   ></app-report-filters>
 
   <div *ngIf="isLoading()" class="loading">
-    Generating report...
+    <div class="spinner"></div>
+    <p>Generating report...</p>
   </div>
 
-  <div *ngIf="!isLoading() && reportData().length > 0" class="report-data">
+  <div *ngIf="!isLoading() && reportData().length > 0" class="report-data fade-in">
     <div class="export-buttons">
-      <button class="btn btn-small" (click)="exportExcel()">Export Excel</button>
-      <button class="btn btn-small" (click)="exportCsv()">Export CSV</button>
-      <button class="btn btn-small" (click)="exportPdf()">Export PDF</button>
+      <button class="btn btn-outline" (click)="exportExcel()">📊 Export Excel</button>
+      <button class="btn btn-outline" (click)="exportCsv()">📝 Export CSV</button>
+      <button class="btn btn-outline" (click)="exportPdf()">📄 Export PDF</button>
     </div>
 
-    <table class="report-table">
-      <thead>
-        <tr>
-          <th *ngFor="let header of reportHeaders()">{{ header }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of reportData()">
-          <td *ngFor="let header of reportHeaders()">
-            {{ row[header] }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th *ngFor="let header of reportHeaders()">{{ formatHeader(header) }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of reportData()">
+              <td *ngFor="let header of reportHeaders()">
+                {{ formatValue(header, row[header]) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+    </div>
   </div>
 
-  <div *ngIf="!isLoading() && reportData().length === 0 && selectedReport" class="no-data">
+  <div *ngIf="!isLoading() && reportData().length === 0 && selectedReport && !errorMessage()" class="no-data">
     <p>No data available for the selected filters</p>
   </div>
 

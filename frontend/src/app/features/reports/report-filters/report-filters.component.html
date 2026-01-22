@@ -2,6 +2,7 @@
   <h3>Filters</h3>
 
   <div class="filter-grid">
+    <!-- Date Range (Visible to all who can access reports) -->
     <div class="filter-group">
       <label for="startDate">Start Date</label>
       <input
@@ -22,25 +23,26 @@
       />
     </div>
 
-    <div class="filter-group">
+    <!-- Department Filter (Admin/HR Only) -->
+    <div class="filter-group" *ngIf="canFilterDepartment()">
       <label for="department">Department</label>
-      <select [(ngModel)]="department" (change)="applyFilters()">
+      <select id="department" [(ngModel)]="departmentId" (change)="onDepartmentChange()">
         <option value="">All Departments</option>
-        <option value="engineering">Engineering</option>
-        <option value="hr">HR</option>
-        <option value="finance">Finance</option>
+        <option *ngFor="let dept of departments()" [value]="dept.id">
+          {{ dept.name }}
+        </option>
       </select>
     </div>
 
-    <div class="filter-group">
+    <!-- Employee Filter (Admin/HR/Manager) -->
+    <div class="filter-group" *ngIf="canFilterEmployee()">
       <label for="employee">Employee</label>
-      <input
-        type="text"
-        id="employee"
-        [(ngModel)]="employee"
-        (change)="applyFilters()"
-        placeholder="Search by name..."
-      />
+      <select id="employee" [(ngModel)]="employeeId" (change)="applyFilters()">
+        <option value="">All Employees</option>
+        <option *ngFor="let emp of employees()" [value]="emp.id">
+          {{ emp.fullName }}
+        </option>
+      </select>
     </div>
   </div>
 
@@ -49,7 +51,7 @@
       Apply Filters
     </button>
     <button class="btn btn-secondary" (click)="clearFilters()">
-      Clear
+      Reset
     </button>
   </div>
 </div>
