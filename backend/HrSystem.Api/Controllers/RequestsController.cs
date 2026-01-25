@@ -387,6 +387,13 @@ public class RequestsController : ControllerBase
         var overtimeResult = await _overtimeService.SubmitOvertimeRequestAsync(id, cancellationToken);
         if (overtimeResult) return Ok(new { message = "Overtime request submitted" });
 
+        // Try WorkFromHome
+        var wfhResult = await _workFromHomeService.SubmitWorkFromHomeRequestAsync(id, cancellationToken);
+        if (wfhResult) return Ok(new { message = "WorkFromHome request submitted" });
+
+        // Try TimeOff
+        var timeOffResult = await _timeOffService.SubmitTimeOffRequestAsync(id, cancellationToken);
+        if (timeOffResult) return Ok(new { message = "TimeOff request submitted" });
 
         return BadRequest(new { message = "Failed to submit request. It may not exist or is not in Draft status." });
     }
@@ -408,6 +415,13 @@ public class RequestsController : ControllerBase
         var overtimeResult = await _overtimeService.ApproveOvertimeRequestAsync(id, approverId, cancellationToken);
         if (overtimeResult) return Ok(new { message = "Overtime request approved" });
 
+        // Try WorkFromHome
+        var wfhResult = await _workFromHomeService.ApproveWorkFromHomeRequestAsync(id, approverId, cancellationToken);
+        if (wfhResult) return Ok(new { message = "WorkFromHome request approved" });
+
+        // Try TimeOff
+        var timeOffResult = await _timeOffService.ApproveTimeOffRequestAsync(id, approverId, cancellationToken);
+        if (timeOffResult) return Ok(new { message = "TimeOff request approved" });
 
         return BadRequest(new { message = "Failed to approve request. It may not exist or is not in Submitted status." });
     }

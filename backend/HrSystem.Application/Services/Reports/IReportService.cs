@@ -1,3 +1,5 @@
+using HrSystem.Application.DTOs.Reports;
+
 namespace HrSystem.Application.Services.Reports;
 
 /// <summary>
@@ -5,6 +7,25 @@ namespace HrSystem.Application.Services.Reports;
 /// </summary>
 public interface IReportService
 {
+    /// <summary>
+    /// Get monthly work summary report for all employees
+    /// </summary>
+    Task<IEnumerable<MonthlyWorkSummaryDto>> GetMonthlyWorkSummaryReportAsync(
+        int year,
+        int month,
+        Guid? departmentId = null,
+        Guid? employeeId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get detailed monthly work report for a specific employee
+    /// </summary>
+    Task<MonthlyWorkDetailsDto?> GetMonthlyWorkDetailsReportAsync(
+        Guid employeeId,
+        int year,
+        int month,
+        CancellationToken cancellationToken = default);
+
     Task<IEnumerable<dynamic>> GetAttendanceReportAsync(
         DateTime startDate, 
         DateTime endDate, 

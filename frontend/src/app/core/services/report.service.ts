@@ -70,6 +70,29 @@ export class ReportService {
     return this.apiService.get('/reports/work-from-home', params);
   }
 
+  getMonthlyWorkSummaryReport(
+    year: number,
+    month: number,
+    departmentId?: string,
+    employeeId?: string
+  ): Observable<any> {
+    const params = {
+      year,
+      month,
+      departmentId,
+      employeeId
+    };
+    return this.apiService.get('/reports/monthly-work-summary', params);
+  }
+
+  getMonthlyWorkDetailsReport(
+    employeeId: string,
+    year: number,
+    month: number
+  ): Observable<any> {
+    return this.apiService.get(`/reports/monthly-work-details/${employeeId}`, { year, month });
+  }
+
   private formatDataForExport(data: any[]): any[] {
     if (!data || data.length === 0) return [];
     

@@ -1,3 +1,4 @@
+using HrSystem.Application.DTOs.Reports;
 using HrSystem.Application.Services.Reports;
 using HrSystem.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -118,6 +119,52 @@ public class ReportsController : ControllerBase
             departmentId,
             cancellationToken);
 
+        return Ok(report);
+    }
+
+    /// <summary>
+    /// Get monthly work summary report
+    /// </summary>
+    [HttpGet("monthly-work-summary")]
+    public async Task<IActionResult> GetMonthlyWorkSummaryReport(
+        [FromQuery] int year,
+        [FromQuery] int month,
+        [FromQuery] Guid? departmentId = null,
+        [FromQuery] Guid? employeeId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!CanAccessReport(departmentId)) return Forbid();
+
+        var report = await _reportService.GetMonthlyWorkSummaryReportAsync(
+            year,
+            month,
+            departmentId,
+            employeeId,
+            cancellationToken);
+
+        return Ok(report);
+    }
+
+    /// <summary>
+    /// Get monthly work details report for an employee
+    /// </summary>
+    [HttpGet("monthly-work-details/{employeeId}")]
+    public async Task<IActionResult> GetMonthlyWorkDetailsReport(
+        Guid employeeId,
+        [FromQuery] int year,
+        [FromQuery] int month,
+        CancellationToken cancellationToken = default)
+    {
+        // Check if current user can access this employee's report
+        if (!CanAccessReport(null)) return Forbid();
+
+        var report = await _reportService.GetMonthlyWorkDetailsReportAsync(
+            employeeId,
+            year,
+            month,
+            cancellationToken);
+
+        if (report == null) return NotFound();
         return Ok(report);
     }
 

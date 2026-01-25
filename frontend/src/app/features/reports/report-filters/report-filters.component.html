@@ -2,29 +2,49 @@
   <h3>Filters</h3>
 
   <div class="filter-grid">
-    <!-- Date Range (Visible to all who can access reports) -->
-    <div class="filter-group">
-      <label for="startDate">Start Date</label>
-      <input
-        type="date"
-        id="startDate"
-        [(ngModel)]="startDate"
-        (change)="applyFilters()"
-      />
-    </div>
+    <!-- Year/Month Selection (For Monthly Reports) -->
+    <ng-container *ngIf="isMonthlyReport()">
+      <div class="filter-group">
+        <label for="year">Year</label>
+        <select id="year" [(ngModel)]="selectedYear" (change)="applyFilters()">
+          <option *ngFor="let y of [2024, 2025, 2026, 2027]" [value]="y">{{ y }}</option>
+        </select>
+      </div>
 
-    <div class="filter-group">
-      <label for="endDate">End Date</label>
-      <input
-        type="date"
-        id="endDate"
-        [(ngModel)]="endDate"
-        (change)="applyFilters()"
-      />
-    </div>
+      <div class="filter-group">
+        <label for="month">Month</label>
+        <select id="month" [(ngModel)]="selectedMonth" (change)="applyFilters()">
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+      </div>
+    </ng-container>
+
+    <!-- Date Range (For non-monthly reports) -->
+    <ng-container *ngIf="!isMonthlyReport()">
+      <div class="filter-group">
+        <label for="startDate">Start Date</label>
+        <input type="date" id="startDate" [(ngModel)]="startDate" (change)="applyFilters()" />
+      </div>
+
+      <div class="filter-group">
+        <label for="endDate">End Date</label>
+        <input type="date" id="endDate" [(ngModel)]="endDate" (change)="applyFilters()" />
+      </div>
+    </ng-container>
 
     <!-- Department Filter (Admin/HR Only) -->
-    <div class="filter-group" *ngIf="canFilterDepartment()">
+    <div class="filter-group" *ngIf="canFilterDepartment() && !isDetailsReport()">
       <label for="department">Department</label>
       <select id="department" [(ngModel)]="departmentId" (change)="onDepartmentChange()">
         <option value="">All Departments</option>
@@ -34,11 +54,13 @@
       </select>
     </div>
 
-    <!-- Employee Filter (Admin/HR/Manager) -->
+    <!-- Employee Filter (Admin/HR/Manager) - Required for details report -->
     <div class="filter-group" *ngIf="canFilterEmployee()">
-      <label for="employee">Employee</label>
-      <select id="employee" [(ngModel)]="employeeId" (change)="applyFilters()">
-        <option value="">All Employees</option>
+      <label for="employee">Employee {{ isDetailsReport() ? '(Required)' : '' }}</label>
+      <select id="employee" [(ngModel)]="employeeId" (change)="applyFilters()"
+        [class.required]="isDetailsReport() && !employeeId">
+        <option value="" *ngIf="!isDetailsReport()">All Employees</option>
+        <option value="" *ngIf="isDetailsReport()" disabled>Select an employee...</option>
         <option *ngFor="let emp of employees()" [value]="emp.id">
           {{ emp.fullName }}
         </option>

@@ -21,9 +21,23 @@ export class ReportFiltersComponent implements OnInit {
   departmentId = '';
   employeeId = '';
 
+  // For monthly reports
+  selectedYear = new Date().getFullYear();
+  selectedMonth = new Date().getMonth() + 1;
+
   departments = signal<any[]>([]);
   employees = signal<any[]>([]);
-  
+
+  // Computed check for monthly reports
+  isMonthlyReport = computed(() => {
+    return this.reportType === 'monthly-work-summary' || this.reportType === 'monthly-work-details';
+  });
+
+  // Check if details report (requires employee selection)
+  isDetailsReport = computed(() => {
+    return this.reportType === 'monthly-work-details';
+  });
+
   // Computed role checks
   canFilterDepartment = computed(() => {
     return this.authService.hasRole('Admin') || this.authService.hasRole('HR');
@@ -37,8 +51,8 @@ export class ReportFiltersComponent implements OnInit {
     private authService: AuthService,
     private apiService: ApiService
   ) {
-      // Effect to reload employees when department changes if needed, 
-      // but simpler to just trigger on change event
+    // Effect to reload employees when department changes if needed, 
+    // but simpler to just trigger on change event
   }
 
   ngOnInit(): void {
@@ -50,10 +64,10 @@ export class ReportFiltersComponent implements OnInit {
   setDefaultDates(): void {
     const today = new Date();
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    
+
     this.startDate = firstDay.toISOString().split('T')[0];
     this.endDate = today.toISOString().split('T')[0];
-    
+
     // Emit initial default filters
     // this.applyFilters(); 
   }
@@ -75,7 +89,7 @@ export class ReportFiltersComponent implements OnInit {
 
     const params: any = { page: 1, pageSize: 1000 };
     if (this.departmentId) {
-        params.departmentId = this.departmentId;
+      params.departmentId = this.departmentId;
     }
 
     // If manager, backend might filter automatically based on their team, 
@@ -98,12 +112,14 @@ export class ReportFiltersComponent implements OnInit {
   }
 
   applyFilters(): void {
-    const filters = {
+    const filters: any = {
       reportType: this.reportType,
       startDate: this.startDate,
       endDate: this.endDate,
       departmentId: this.departmentId || null,
-      employeeId: this.employeeId || null
+      employeeId: this.employeeId || null,
+      year: this.selectedYear,
+      month: this.selectedMonth
     };
     this.filterApplied.emit(filters);
   }
