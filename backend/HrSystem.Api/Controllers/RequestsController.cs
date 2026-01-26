@@ -52,7 +52,7 @@ public class RequestsController : ControllerBase
     {
         // Get Leave Requests (fetch all pages - simplified for history view, ideally use pagination)
         var leaveResult = await _leaveRequestService.GetLeaveRequestsAsync(1, 1000, null, userId, null, cancellationToken);
-        
+
         var history = new List<RequestSummaryDto>();
 
         history.AddRange(leaveResult.Items.Select(l => new RequestSummaryDto
@@ -104,7 +104,7 @@ public class RequestsController : ControllerBase
             var subordinates = await _userService.GetSubordinatesAsync(currentUserId, cancellationToken);
             var subordinateIds = subordinates.Select(u => u.Id).ToList();
             subordinateIds.Add(currentUserId); // Add self
-            
+
             allowedUserIds = subordinateIds;
 
             // If a specific user is requested, ensure they are in the allowed list
@@ -136,13 +136,13 @@ public class RequestsController : ControllerBase
         }
         else
         {
-             // Fallback for unknown roles - restrict to self
-             userId = currentUserId;
+            // Fallback for unknown roles - restrict to self
+            userId = currentUserId;
         }
 
         // Get Leave Requests
         var leaveResult = await _leaveRequestService.GetLeaveRequestsAsync(1, 10000, status, userId, allowedUserIds, cancellationToken);
-        
+
         // Get Overtime Requests
         var overtimeResult = await _overtimeService.GetOvertimeRequestsAsync(1, 10000, status, null, userId, allowedUserIds, cancellationToken);
 
@@ -155,7 +155,7 @@ public class RequestsController : ControllerBase
         var allRequests = new List<RequestSummaryDto>();
 
         // Map leave requests
-        allRequests.AddRange(leaveResult.Items.Select(l => new RequestSummaryDto
+        allRequests.AddRange(leaveResult.Items.Where(r => r.Status != RequestStatus.Draft).Select(l => new RequestSummaryDto
         {
             Id = l.Id,
             EmployeeName = l.UserName ?? "Unknown",
@@ -453,7 +453,7 @@ public class RequestsController : ControllerBase
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
             ?? User.FindFirst("sub")?.Value
             ?? User.FindFirst("nameid")?.Value;
-            
+
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             return Guid.Empty;

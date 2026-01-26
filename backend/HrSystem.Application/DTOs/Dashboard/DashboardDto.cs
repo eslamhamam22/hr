@@ -18,6 +18,16 @@ public class EmployeeDashboardDto
     /// Overtime summary for current month
     /// </summary>
     public OvertimeSummaryDto OvertimeSummary { get; set; } = new();
+
+    /// <summary>
+    /// Work From Home summary for current month
+    /// </summary>
+    public WorkFromHomeSummaryDto WorkFromHomeSummary { get; set; } = new();
+
+    /// <summary>
+    /// Time Off summary for current month
+    /// </summary>
+    public TimeOffSummaryDto TimeOffSummary { get; set; } = new();
     
     /// <summary>
     /// Recent requests (last 5)
@@ -61,6 +71,8 @@ public class AdminDashboardDto : EmployeeDashboardDto
     
     public RequestStatsDto SystemLeaveStats { get; set; } = new();
     public RequestStatsDto SystemOvertimeStats { get; set; } = new();
+    public RequestStatsDto SystemWorkFromHomeStats { get; set; } = new();
+    public RequestStatsDto SystemTimeOffStats { get; set; } = new();
     
     public List<DepartmentRequestCountDto> RequestsByDepartment { get; set; } = new();
     public List<MonthlyTrendDto> SystemMonthlyTrend { get; set; } = new();
@@ -80,7 +92,9 @@ public class DepartmentRequestCountDto
     public string DepartmentName { get; set; } = string.Empty;
     public int LeaveRequests { get; set; }
     public int OvertimeRequests { get; set; }
-    public int TotalRequests => LeaveRequests + OvertimeRequests;
+    public int WorkFromHomeRequests { get; set; }
+    public int TimeOffRequests { get; set; }
+    public int TotalRequests => LeaveRequests + OvertimeRequests + WorkFromHomeRequests + TimeOffRequests;
 }
 
 public class LeaveSummaryDto
@@ -99,6 +113,22 @@ public class OvertimeSummaryDto
     public int TotalRequests { get; set; }
     public int PendingRequests { get; set; }
     public int ApprovedRequests { get; set; }
+}
+
+public class WorkFromHomeSummaryDto
+{
+    public int TotalDays { get; set; }
+    public int TotalRequests { get; set; }
+    public int PendingRequests { get; set; }
+    public int ApprovedRequests { get; set; }
+}
+
+public class TimeOffSummaryDto
+{
+    public int TotalRequests { get; set; }
+    public int PendingRequests { get; set; }
+    public int ApprovedRequests { get; set; }
+    public int RejectedRequests { get; set; }
 }
 
 public class LeaveTypeCountDto
@@ -126,6 +156,8 @@ public class TeamMemberSummaryDto
     public string UserName { get; set; } = string.Empty;
     public int LeaveDays { get; set; }
     public decimal OvertimeHours { get; set; }
+    public int WorkFromHomeDays { get; set; } 
+    public int TimeOffCount { get; set; }
     public int PendingRequests { get; set; }
 }
 
@@ -134,4 +166,6 @@ public class MonthlyTrendDto
     public string Month { get; set; } = string.Empty;
     public int LeaveRequests { get; set; }
     public int OvertimeRequests { get; set; }
+    public int WorkFromHomeRequests { get; set; }
+    public int TimeOffRequests { get; set; }
 }

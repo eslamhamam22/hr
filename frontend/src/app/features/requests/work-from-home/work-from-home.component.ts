@@ -1,12 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DataTableComponent, DataTableColumn } from '../../../shared/components/data-table/data-table.component';
+import { DataTableComponent, DataTableColumn, PaginationConfig } from '../../../shared/components/data-table/data-table.component';
 import { StatusColorPipe } from '../../../shared/pipes/status-color.pipe';
 import { WorkFromHomeService } from '../../../core/services/work-from-home.service';
 import { WorkFromHomeRequest } from '../../../core/models/work-from-home.model';
 import { AuthService } from '@core/auth/auth.service';
 import { CreateWfhModalComponent } from './create-wfh-modal/create-wfh-modal.component';
+import { getStatusClass, getStatusLabel, RequestStatus } from '@core/models/overtime.model';
 
 @Component({
     selector: 'app-work-from-home',
@@ -23,13 +24,20 @@ export class WorkFromHomeComponent implements OnInit {
     isModalOpen = false;
 
     columns: DataTableColumn[] = [
-        { header: 'From Date', field: 'fromDate' },
-        { header: 'To Date', field: 'toDate' },
-        { header: 'Total Days', field: 'totalDays' },
-        { header: 'Status', field: 'status' },
-        { header: 'Submitted', field: 'submittedAt' },
+        { header: 'From Date', field: 'fromDate', sortable: true },
+        { header: 'To Date', field: 'toDate', sortable: true },
+        { header: 'Total Days', field: 'totalDays', sortable: true },
+        { header: 'Status', field: 'status', sortable: true },
+        { header: 'Submitted', field: 'submittedAt', sortable: true },
         { header: 'Approved By', field: 'approvedByHRName' },
     ];
+
+    pagination: PaginationConfig = {
+        currentPage: 1,
+        pageSize: 10,
+        totalItems: 0,
+        pageSizeOptions: [10, 25, 50, 100]
+    };
 
     constructor(
         private wfhService: WorkFromHomeService,
@@ -63,6 +71,17 @@ export class WorkFromHomeComponent implements OnInit {
         });
     }
 
+    onPageChange(page: number): void {
+        this.pagination.currentPage = page;
+        this.loadRequests();
+    }
+
+    onPageSizeChange(pageSize: number): void {
+        this.pagination.pageSize = pageSize;
+        this.pagination.currentPage = 1;
+        this.loadRequests();
+    }
+
     openCreateModal(): void {
         this.isModalOpen = true;
     }
@@ -87,4 +106,17 @@ export class WorkFromHomeComponent implements OnInit {
             }
         });
     }
+
+    getStatusLabel(status: RequestStatus): string {
+        return getStatusLabel(status);
+    }
+
+    getStatusClass(status: RequestStatus): string {
+        return getStatusClass(status);
+    }
+
+    formatDate(date: Date): string {
+        return date ? new Date(date).toLocaleDateString() : '-';
+    }
+
 }

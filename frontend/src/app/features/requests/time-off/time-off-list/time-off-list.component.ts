@@ -9,11 +9,13 @@ import { DataTableComponent, DataTableColumn, PaginationConfig } from '../../../
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { TimeOffModalComponent } from './time-off-modal/time-off-modal.component'; // Import modal
 import { AuthService } from '../../../../core/auth/auth.service';
+import { StatusColorPipe } from '@shared/pipes/status-color.pipe';
 
 @Component({
     selector: 'app-time-off-list',
     standalone: true,
-    imports: [CommonModule, DataTableComponent, ConfirmDialogComponent, TimeOffModalComponent], // Add to imports
+    imports: [CommonModule, DataTableComponent, ConfirmDialogComponent, StatusColorPipe, TimeOffModalComponent], 
+    providers: [StatusColorPipe],
     templateUrl: './time-off-list.component.html',
     styles: [`
         .time-off-list-container { padding: 20px; }
@@ -60,7 +62,7 @@ export class TimeOffListComponent implements OnInit {
 
     constructor(
         private timeOffService: TimeOffService,
-        private router: Router,
+        private statusColorPipe: StatusColorPipe,
         private authService: AuthService
     ) { }
 
@@ -134,6 +136,10 @@ export class TimeOffListComponent implements OnInit {
             });
         }
     }
+
+    getRowStyle = (request: TimeOffRequest) => {
+        return { 'background-color': this.statusColorPipe.transform(request.status.toString()) };
+    };
 
     onDeleteCancelled(): void {
         this.isDeleteDialogOpen = false;

@@ -8,11 +8,13 @@ import { DataTableComponent, DataTableColumn, PaginationConfig } from '../../../
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { OvertimeModalComponent } from './overtime-modal/overtime-modal.component';
 import { AuthService } from '@core/auth/auth.service';
+import { StatusColorPipe } from '@shared/pipes/status-color.pipe';
 
 @Component({
     selector: 'app-overtime-list',
     standalone: true,
-    imports: [CommonModule, DataTableComponent, ConfirmDialogComponent, OvertimeModalComponent],
+    imports: [CommonModule, DataTableComponent, ConfirmDialogComponent, StatusColorPipe, OvertimeModalComponent],
+    providers: [StatusColorPipe],
     templateUrl: './overtime-list.component.html',
     styleUrls: ['./overtime-list.component.scss']
 })
@@ -48,6 +50,7 @@ export class OvertimeListComponent implements OnInit {
     constructor(
         private overtimeService: OvertimeService,
         private router: Router,
+        private statusColorPipe: StatusColorPipe,
         private authService: AuthService
     ) { }
 
@@ -138,6 +141,10 @@ export class OvertimeListComponent implements OnInit {
         this.isDeleteDialogOpen = false;
         this.requestToDelete = null;
     }
+
+    getRowStyle = (request: OvertimeRequest) => {
+        return { 'background-color': this.statusColorPipe.transform(request.status.toString()) };
+    };
 
     getStatusLabel(status: RequestStatus): string {
         return getStatusLabel(status);

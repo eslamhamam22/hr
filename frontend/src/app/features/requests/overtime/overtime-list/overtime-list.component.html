@@ -12,7 +12,7 @@
 
     <app-data-table [columns]="columns" [data]="overtimeRequests" [pagination]="pagination" [loading]="loading"
         [searchable]="true" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)"
-        (searchChange)="onSearch($event)" (rowClick)="onRowClick($event)">
+        (searchChange)="onSearch($event)" (rowClick)="onRowClick($event)" [rowStyle]="getRowStyle">
 
         <ng-template #cellTemplate let-row let-column="column">
             <ng-container [ngSwitch]="column.field">

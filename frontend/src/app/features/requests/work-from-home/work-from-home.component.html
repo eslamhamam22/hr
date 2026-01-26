@@ -19,7 +19,27 @@
 
     <!-- Requests Table -->
     <div *ngIf="!isLoading() && !errorMessage()" class="table-container">
-        <app-data-table [data]="requests()" [columns]="columns" ></app-data-table>
+        <app-data-table [data]="requests()" [columns]="columns" [pagination]="pagination" [loading]="isLoading()"
+            (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)" [rowStyle]="getRowStyle">
+
+            <ng-template #cellTemplate let-row let-column="column">
+                <ng-container [ngSwitch]="column.field">
+                    <span *ngSwitchCase="'status'" [class]="getStatusClass(row.status)" class="status-badge">
+                        {{ getStatusLabel(row.status) }}
+                    </span>
+                    <span *ngSwitchCase="'date'">
+                        {{ formatDate(row.date) }}
+                    </span>
+                    <span *ngSwitchCase="'submittedAt'">
+                        {{ formatDate(row.submittedAt) }}
+                    </span>
+                    <span *ngSwitchDefault>
+                        {{ row[column.field] }}
+                    </span>
+                </ng-container>
+            </ng-template>
+
+        </app-data-table>
 
         <div *ngIf="requests().length === 0" class="no-data">
             <p>No work from home requests found.</p>

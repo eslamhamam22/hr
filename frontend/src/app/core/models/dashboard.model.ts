@@ -4,6 +4,8 @@ export interface EmployeeDashboard {
     role: string;
     leaveSummary: LeaveSummary;
     overtimeSummary: OvertimeSummary;
+    workFromHomeSummary: WorkFromHomeSummary;
+    timeOffSummary: TimeOffSummary;
     recentRequests: RecentRequest[];
 }
 
@@ -30,6 +32,20 @@ export interface OvertimeSummary {
     approvedRequests: number;
 }
 
+export interface WorkFromHomeSummary {
+    totalDays: number;
+    totalRequests: number;
+    pendingRequests: number;
+    approvedRequests: number;
+}
+
+export interface TimeOffSummary {
+    totalRequests: number;
+    pendingRequests: number;
+    approvedRequests: number;
+    rejectedRequests: number;
+}
+
 export interface LeaveTypeCount {
     leaveType: string;
     days: number;
@@ -52,6 +68,8 @@ export interface TeamMemberSummary {
     userName: string;
     leaveDays: number;
     overtimeHours: number;
+    workFromHomeDays: number;
+    timeOffCount: number;
     pendingRequests: number;
 }
 
@@ -59,6 +77,8 @@ export interface MonthlyTrend {
     month: string;
     leaveRequests: number;
     overtimeRequests: number;
+    workFromHomeRequests: number;
+    timeOffRequests: number;
 }
 
 export interface AdminDashboard extends EmployeeDashboard {
@@ -66,6 +86,8 @@ export interface AdminDashboard extends EmployeeDashboard {
     totalDepartments: number;
     systemLeaveStats: RequestStats;
     systemOvertimeStats: RequestStats;
+    systemWorkFromHomeStats: RequestStats;
+    systemTimeOffStats: RequestStats;
     requestsByDepartment: DepartmentRequestCount[];
     systemMonthlyTrend: MonthlyTrend[];
     systemLeaveTypeDistribution: LeaveTypeCount[];
@@ -82,5 +104,7 @@ export interface DepartmentRequestCount {
     departmentName: string;
     leaveRequests: number;
     overtimeRequests: number;
+    workFromHomeRequests: number;
+    timeOffRequests: number;
     totalRequests: number;
 }

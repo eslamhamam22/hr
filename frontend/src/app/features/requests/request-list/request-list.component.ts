@@ -24,11 +24,11 @@ export class RequestListComponent implements OnInit {
   isModalOpen = false;
 
   columns: DataTableColumn[] = [
-    { header: 'Request Type', field: 'requestType' },
-    { header: 'Start Date', field: 'startDate' },
-    { header: 'End Date', field: 'endDate' },
-    { header: 'Status', field: 'status' },
-    { header: 'Submitted', field: 'submittedAt' },
+    { header: 'Request Type', field: 'requestType', sortable: true },
+    { header: 'Start Date', field: 'startDate', sortable: true },
+    { header: 'End Date', field: 'endDate', sortable: true },
+    { header: 'Status', field: 'status', sortable: true },
+    { header: 'Submitted', field: 'submittedAt', sortable: true },
     { header: 'Approved By', field: 'approvedByName' },
   ];
 

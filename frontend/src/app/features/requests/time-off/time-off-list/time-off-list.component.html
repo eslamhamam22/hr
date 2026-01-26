@@ -11,7 +11,7 @@
     </div>
 
     <app-data-table [columns]="columns" [data]="timeOffRequests" [pagination]="pagination" [loading]="loading"
-        (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)">
+        (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)" [rowStyle]="getRowStyle">
 
         <ng-template #cellTemplate let-row let-column="column">
             <ng-container [ngSwitch]="column.field">

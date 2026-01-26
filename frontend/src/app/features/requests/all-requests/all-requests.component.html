@@ -50,7 +50,7 @@
 
   <!-- Requests Table -->
   <div *ngIf="!isLoading() && !errorMessage()" class="table-container">
-    <app-data-table [data]="filteredRequests()" [columns]="columns" 
+    <app-data-table [data]="filteredRequests()" [columns]="columns" [rowStyle]="getRowStyle" 
       (rowClick)="onRowClick($event)"></app-data-table>
 
     <div *ngIf="filteredRequests().length === 0" class="no-data">

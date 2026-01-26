@@ -12,17 +12,23 @@ public class DashboardService : IDashboardService
     private readonly IRepository<OvertimeRequest> _overtimeRequestRepository;
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Department> _departmentRepository;
+    private readonly IRepository<WorkFromHomeRequest> _workFromHomeRequestRepository;
+    private readonly IRepository<TimeOffRequest> _timeOffRequestRepository;
 
     public DashboardService(
         IRepository<LeaveRequest> leaveRequestRepository,
         IRepository<OvertimeRequest> overtimeRequestRepository,
         IRepository<User> userRepository,
-        IRepository<Department> departmentRepository)
+        IRepository<Department> departmentRepository,
+        IRepository<WorkFromHomeRequest> workFromHomeRequestRepository,
+        IRepository<TimeOffRequest> timeOffRequestRepository)
     {
         _leaveRequestRepository = leaveRequestRepository;
         _overtimeRequestRepository = overtimeRequestRepository;
         _userRepository = userRepository;
         _departmentRepository = departmentRepository;
+        _workFromHomeRequestRepository = workFromHomeRequestRepository;
+        _timeOffRequestRepository = timeOffRequestRepository;
     }
 
     public async Task<EmployeeDashboardDto> GetEmployeeDashboardAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -50,6 +56,16 @@ public class DashboardService : IDashboardService
             .Where(r => r.UserId == userId && r.CreatedAt >= startOfMonth)
             .ToListAsync(cancellationToken);
 
+        // Get work from home requests for current month
+        var workFromHomeRequests = await _workFromHomeRequestRepository.GetQueryable()
+            .Where(r => r.UserId == userId && r.CreatedAt >= startOfYear)
+            .ToListAsync(cancellationToken);
+
+        // Get time off requests for current month
+        var timeOffRequests = await _timeOffRequestRepository.GetQueryable()
+            .Where(r => r.UserId == userId && r.CreatedAt >= startOfMonth)
+            .ToListAsync(cancellationToken);
+
         // Get recent requests (last 5)
         var recentLeave = await _leaveRequestRepository.GetQueryable()
             .Where(r => r.UserId == userId)
@@ -58,6 +74,18 @@ public class DashboardService : IDashboardService
             .ToListAsync(cancellationToken);
 
         var recentOvertime = await _overtimeRequestRepository.GetQueryable()
+            .Where(r => r.UserId == userId)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var recentWorkFromHome = await _workFromHomeRequestRepository.GetQueryable()
+            .Where(r => r.UserId == userId)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var recentTimeOff = await _timeOffRequestRepository.GetQueryable()
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.CreatedAt)
             .Take(5)
@@ -87,6 +115,28 @@ public class DashboardService : IDashboardService
             Hours = r.HoursWorked
         }));
 
+        recentRequests.AddRange(recentWorkFromHome.Select(r => new RecentRequestDto
+        {
+            Id = r.Id,
+            RequestType = "Work From Home",
+            Status = r.Status.ToString(),
+            StartDate = r.FromDate,
+            EndDate = r.ToDate,
+            SubmittedAt = r.SubmittedAt ?? r.CreatedAt,
+            Days = r.TotalDays
+        }));
+
+        recentRequests.AddRange(recentTimeOff.Select(r => new RecentRequestDto
+        {
+            Id = r.Id,
+            RequestType = "Time Off",
+            Status = r.Status.ToString(),
+            StartDate = r.Date,
+            EndDate = r.Date, 
+            SubmittedAt = r.SubmittedAt ?? r.CreatedAt,
+            Hours = 2 
+        }));
+
         // Leave summary
         var leaveSummary = new LeaveSummaryDto
         {
@@ -96,7 +146,7 @@ public class DashboardService : IDashboardService
             TotalDaysRemaining = 21 - leaveRequests
                 .Where(r => r.Status == RequestStatus.Approved)
                 .Sum(r => r.TotalDays), // Assuming 21 days annual leave
-            PendingRequests = leaveRequests.Count(r => r.Status == RequestStatus.Submitted),
+            PendingRequests = leaveRequests.Count(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager || r.Status == RequestStatus.PendingHR),
             ApprovedRequests = leaveRequests.Count(r => r.Status == RequestStatus.Approved),
             RejectedRequests = leaveRequests.Count(r => r.Status == RequestStatus.Rejected),
             ByLeaveType = leaveRequests
@@ -118,8 +168,28 @@ public class DashboardService : IDashboardService
                 .Where(r => r.Status == RequestStatus.Approved)
                 .Sum(r => r.HoursWorked),
             TotalRequests = overtimeRequests.Count,
-            PendingRequests = overtimeRequests.Count(r => r.Status == RequestStatus.Submitted),
+            PendingRequests = overtimeRequests.Count(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager || r.Status == RequestStatus.PendingHR),
             ApprovedRequests = overtimeRequests.Count(r => r.Status == RequestStatus.Approved)
+        };
+
+        // Work From Home summary for current month
+        var workFromHomeSummary = new WorkFromHomeSummaryDto
+        {
+            TotalDays = workFromHomeRequests
+                .Where(r => r.Status == RequestStatus.Approved)
+                .Sum(r => r.TotalDays),
+            TotalRequests = workFromHomeRequests.Count,
+            PendingRequests = workFromHomeRequests.Count(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager || r.Status == RequestStatus.PendingHR),
+            ApprovedRequests = workFromHomeRequests.Count(r => r.Status == RequestStatus.Approved)
+        };
+
+        // Time Off summary for current month
+        var timeOffSummary = new TimeOffSummaryDto
+        {
+            TotalRequests = timeOffRequests.Count,
+            PendingRequests = timeOffRequests.Count(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager || r.Status == RequestStatus.PendingHR),
+            ApprovedRequests = timeOffRequests.Count(r => r.Status == RequestStatus.Approved),
+            RejectedRequests = timeOffRequests.Count(r => r.Status == RequestStatus.Rejected)
         };
 
         return new EmployeeDashboardDto
@@ -129,6 +199,8 @@ public class DashboardService : IDashboardService
             Role = user.Role.ToString(),
             LeaveSummary = leaveSummary,
             OvertimeSummary = overtimeSummary,
+            WorkFromHomeSummary = workFromHomeSummary,
+            TimeOffSummary = timeOffSummary,
             RecentRequests = recentRequests
                 .OrderByDescending(r => r.SubmittedAt)
                 .Take(5)
@@ -158,11 +230,11 @@ public class DashboardService : IDashboardService
 
         // Get pending approvals count
         var pendingLeave = await _leaveRequestRepository.GetQueryable()
-            .Where(r => teamMemberIds.Contains(r.UserId) && r.Status == RequestStatus.Submitted)
+            .Where(r => teamMemberIds.Contains(r.UserId) && (r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager))
             .CountAsync(cancellationToken);
 
         var pendingOvertime = await _overtimeRequestRepository.GetQueryable()
-            .Where(r => teamMemberIds.Contains(r.UserId) && r.Status == RequestStatus.Submitted)
+            .Where(r => teamMemberIds.Contains(r.UserId) && (r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager))
             .CountAsync(cancellationToken);
 
         // Team summary
@@ -171,6 +243,14 @@ public class DashboardService : IDashboardService
             .ToListAsync(cancellationToken);
 
         var teamOvertimeRequests = await _overtimeRequestRepository.GetQueryable()
+            .Where(r => teamMemberIds.Contains(r.UserId) && r.CreatedAt >= startOfMonth)
+            .ToListAsync(cancellationToken);
+
+        var teamWorkFromHomeRequests = await _workFromHomeRequestRepository.GetQueryable()
+            .Where(r => teamMemberIds.Contains(r.UserId) && r.CreatedAt >= startOfMonth)
+            .ToListAsync(cancellationToken);
+
+        var teamTimeOffRequests = await _timeOffRequestRepository.GetQueryable()
             .Where(r => teamMemberIds.Contains(r.UserId) && r.CreatedAt >= startOfMonth)
             .ToListAsync(cancellationToken);
 
@@ -184,8 +264,14 @@ public class DashboardService : IDashboardService
             OvertimeHours = teamOvertimeRequests
                 .Where(r => r.UserId == member.Id && r.Status == RequestStatus.Approved)
                 .Sum(r => r.HoursWorked),
-            PendingRequests = teamLeaveRequests.Count(r => r.UserId == member.Id && r.Status == RequestStatus.Submitted) +
-                              teamOvertimeRequests.Count(r => r.UserId == member.Id && r.Status == RequestStatus.Submitted)
+            PendingRequests = teamLeaveRequests.Count(r => r.UserId == member.Id && (r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager)) +
+                              teamOvertimeRequests.Count(r => r.UserId == member.Id && (r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager)) +
+                              teamWorkFromHomeRequests.Count(r => r.UserId == member.Id && (r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager)),
+            WorkFromHomeDays = teamWorkFromHomeRequests
+                .Where(r => r.UserId == member.Id && r.Status == RequestStatus.Approved)
+                .Sum(r => r.TotalDays),
+            TimeOffCount = teamTimeOffRequests
+                .Count(r => r.UserId == member.Id && r.Status == RequestStatus.Approved)
         }).ToList();
 
         // Leave by type for team
@@ -206,9 +292,9 @@ public class DashboardService : IDashboardService
         {
             var monthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-i);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-            
+
             var leaveCount = await _leaveRequestRepository.GetQueryable()
-                .Where(r => teamMemberIds.Contains(r.UserId) && 
+                .Where(r => teamMemberIds.Contains(r.UserId) &&
                             r.CreatedAt >= monthStart && r.CreatedAt <= monthEnd)
                 .CountAsync(cancellationToken);
 
@@ -217,11 +303,23 @@ public class DashboardService : IDashboardService
                             r.CreatedAt >= monthStart && r.CreatedAt <= monthEnd)
                 .CountAsync(cancellationToken);
 
+            var workFromHomeCount = await _workFromHomeRequestRepository.GetQueryable()
+                .Where(r => teamMemberIds.Contains(r.UserId) && 
+                            r.CreatedAt >= monthStart && r.CreatedAt <= monthEnd)
+                .CountAsync(cancellationToken);
+
+            var timeOffCount = await _timeOffRequestRepository.GetQueryable()
+                .Where(r => teamMemberIds.Contains(r.UserId) && 
+                            r.CreatedAt >= monthStart && r.CreatedAt <= monthEnd)
+                .CountAsync(cancellationToken);
+
             monthlyTrend.Add(new MonthlyTrendDto
             {
                 Month = monthStart.ToString("MMM yyyy"),
                 LeaveRequests = leaveCount,
-                OvertimeRequests = overtimeCount
+                OvertimeRequests = overtimeCount,
+                WorkFromHomeRequests = workFromHomeCount,
+                TimeOffRequests = timeOffCount
             });
         }
 
@@ -260,7 +358,7 @@ public class DashboardService : IDashboardService
         var systemLeaveStats = new RequestStatsDto
         {
             Total = allLeaveRequests.Count,
-            Pending = allLeaveRequests.Count(r => r.Status == RequestStatus.Submitted),
+            Pending = allLeaveRequests.Count(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager || r.Status == RequestStatus.PendingHR),
             Approved = allLeaveRequests.Count(r => r.Status == RequestStatus.Approved),
             Rejected = allLeaveRequests.Count(r => r.Status == RequestStatus.Rejected)
         };
@@ -270,12 +368,38 @@ public class DashboardService : IDashboardService
             .Where(r => r.CreatedAt >= startOfYear)
             .ToListAsync(cancellationToken);
             
+        // System Work From Home Stats (Current Year)
+        var allWorkFromHomeRequests = await _workFromHomeRequestRepository.GetQueryable()
+            .Where(r => r.CreatedAt >= startOfYear)
+            .ToListAsync(cancellationToken);
+
+        // System Time Off Stats (Current Year)
+        var allTimeOffRequests = await _timeOffRequestRepository.GetQueryable()
+            .Where(r => r.CreatedAt >= startOfYear)
+            .ToListAsync(cancellationToken);
+            
         var systemOvertimeStats = new RequestStatsDto
         {
             Total = allOvertimeRequests.Count,
-            Pending = allOvertimeRequests.Count(r => r.Status == RequestStatus.Submitted),
+            Pending = allOvertimeRequests.Count(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager || r.Status == RequestStatus.PendingHR),
             Approved = allOvertimeRequests.Count(r => r.Status == RequestStatus.Approved),
             Rejected = allOvertimeRequests.Count(r => r.Status == RequestStatus.Rejected)
+        };
+
+        var systemWorkFromHomeStats = new RequestStatsDto
+        {
+            Total = allWorkFromHomeRequests.Count,
+            Pending = allWorkFromHomeRequests.Count(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager || r.Status == RequestStatus.PendingHR),
+            Approved = allWorkFromHomeRequests.Count(r => r.Status == RequestStatus.Approved),
+            Rejected = allWorkFromHomeRequests.Count(r => r.Status == RequestStatus.Rejected)
+        };
+
+        var systemTimeOffStats = new RequestStatsDto
+        {
+            Total = allTimeOffRequests.Count,
+            Pending = allTimeOffRequests.Count(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.PendingManager || r.Status == RequestStatus.PendingHR),
+            Approved = allTimeOffRequests.Count(r => r.Status == RequestStatus.Approved),
+            Rejected = allTimeOffRequests.Count(r => r.Status == RequestStatus.Rejected)
         };
         
         // Requests by Department
@@ -290,12 +414,16 @@ public class DashboardService : IDashboardService
         {
             var deptLeaveCount = allLeaveRequests.Count(r => userDepartmentMap.ContainsKey(r.UserId) && userDepartmentMap[r.UserId] == d.Id);
             var deptOvertimeCount = allOvertimeRequests.Count(r => userDepartmentMap.ContainsKey(r.UserId) && userDepartmentMap[r.UserId] == d.Id);
+            var deptWorkFromHomeCount = allWorkFromHomeRequests.Count(r => userDepartmentMap.ContainsKey(r.UserId) && userDepartmentMap[r.UserId] == d.Id);
+            var deptTimeOffCount = allTimeOffRequests.Count(r => userDepartmentMap.ContainsKey(r.UserId) && userDepartmentMap[r.UserId] == d.Id);
             
             return new DepartmentRequestCountDto
             {
                 DepartmentName = d.Name,
                 LeaveRequests = deptLeaveCount,
-                OvertimeRequests = deptOvertimeCount
+                OvertimeRequests = deptOvertimeCount,
+                WorkFromHomeRequests = deptWorkFromHomeCount,
+                TimeOffRequests = deptTimeOffCount
             };
         }).ToList();
         
@@ -314,11 +442,21 @@ public class DashboardService : IDashboardService
                 .Where(r => r.CreatedAt >= monthStart && r.CreatedAt <= monthEnd)
                 .CountAsync(cancellationToken);
 
+            var workFromHomeCount = await _workFromHomeRequestRepository.GetQueryable()
+                .Where(r => r.CreatedAt >= monthStart && r.CreatedAt <= monthEnd)
+                .CountAsync(cancellationToken);
+
+            var timeOffCount = await _timeOffRequestRepository.GetQueryable()
+                .Where(r => r.CreatedAt >= monthStart && r.CreatedAt <= monthEnd)
+                .CountAsync(cancellationToken);
+
             monthlyTrend.Add(new MonthlyTrendDto
             {
                 Month = monthStart.ToString("MMM yyyy"),
                 LeaveRequests = leaveCount,
-                OvertimeRequests = overtimeCount
+                OvertimeRequests = overtimeCount,
+                WorkFromHomeRequests = workFromHomeCount,
+                TimeOffRequests = timeOffCount
             });
         }
         
@@ -341,12 +479,16 @@ public class DashboardService : IDashboardService
             Role = employeeDashboard.Role,
             LeaveSummary = employeeDashboard.LeaveSummary,
             OvertimeSummary = employeeDashboard.OvertimeSummary,
+            TimeOffSummary = employeeDashboard.TimeOffSummary,
+            WorkFromHomeSummary = employeeDashboard.WorkFromHomeSummary,
             RecentRequests = employeeDashboard.RecentRequests,
             
             TotalEmployees = totalEmployees,
             TotalDepartments = totalDepartments,
             SystemLeaveStats = systemLeaveStats,
             SystemOvertimeStats = systemOvertimeStats,
+            SystemWorkFromHomeStats = systemWorkFromHomeStats,
+            SystemTimeOffStats = systemTimeOffStats,
             RequestsByDepartment = requestsByDepartment,
             SystemMonthlyTrend = monthlyTrend,
             SystemLeaveTypeDistribution = systemLeaveTypeDistribution

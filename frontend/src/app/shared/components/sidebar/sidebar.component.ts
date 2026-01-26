@@ -45,7 +45,7 @@ export class SidebarComponent {
                 },
                 {
                     label: 'Overtime Requests',
-                    icon: '⏱️',
+                    icon: '⏰',
                     route: '/requests/overtime'
                 },
                 {
@@ -55,7 +55,7 @@ export class SidebarComponent {
                 },
                 {
                     label: 'Time Off',
-                    icon: '🏠',
+                    icon: '⏱️',
                     route: '/requests/time-off'
                 }
             ]
